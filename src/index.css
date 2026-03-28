@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,59 +6,80 @@
 
 @layer base {
   :root {
-    --background: 210 50% 11%;
-    --foreground: 40 20% 90%;
+    /* Deep navy foundations */
+    --background: 209 52% 11%;
+    --foreground: 214 30% 93%;
 
-    --card: 210 45% 14%;
-    --card-foreground: 40 20% 90%;
+    --card: 209 42% 15%;
+    --card-foreground: 214 30% 93%;
 
-    --popover: 210 45% 14%;
-    --popover-foreground: 40 20% 90%;
+    --popover: 209 42% 15%;
+    --popover-foreground: 214 30% 93%;
 
-    --primary: 43 65% 52%;
-    --primary-foreground: 210 50% 8%;
+    /* Soft blue primary */
+    --primary: 214 68% 58%;
+    --primary-foreground: 209 52% 8%;
 
-    --secondary: 210 40% 18%;
-    --secondary-foreground: 40 20% 90%;
+    --secondary: 209 35% 18%;
+    --secondary-foreground: 214 30% 88%;
 
-    --muted: 210 35% 16%;
-    --muted-foreground: 210 15% 55%;
+    --muted: 209 28% 20%;
+    --muted-foreground: 210 18% 52%;
 
-    --accent: 210 60% 22%;
-    --accent-foreground: 40 20% 90%;
+    --accent: 209 45% 24%;
+    --accent-foreground: 214 30% 93%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 60% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 210 30% 20%;
-    --input: 210 30% 20%;
-    --ring: 43 65% 52%;
+    --border: 209 25% 22%;
+    --input: 209 25% 22%;
+    --ring: 43 55% 52%;
 
     --radius: 1rem;
 
-    --gold: 43 65% 52%;
-    --gold-light: 43 70% 65%;
-    --navy-deep: 210 55% 8%;
-    --navy-mid: 210 45% 14%;
-    --blue-soft: 210 70% 55%;
-    --blue-glow: 210 80% 60%;
+    /* Semantic palette */
+    --gold: 43 55% 52%;
+    --gold-light: 43 60% 62%;
+    --gold-muted: 43 40% 45%;
+    --navy-deep: 209 55% 8%;
+    --navy-mid: 209 42% 15%;
+    --navy-light: 209 35% 20%;
+    --blue-soft: 214 68% 58%;
+    --blue-calm: 214 55% 65%;
+    --blue-whisper: 214 45% 72%;
 
-    --gradient-help: linear-gradient(135deg, hsl(210 70% 45%), hsl(210 80% 60%));
-    --shadow-gold: 0 0 20px hsl(43 65% 52% / 0.15);
-    --shadow-blue: 0 0 30px hsl(210 80% 60% / 0.25);
-    --glow-gold: 0 0 40px hsl(43 65% 52% / 0.2);
+    /* Emotion colors */
+    --emotion-anxiety: 200 55% 58%;
+    --emotion-sadness: 215 30% 50%;
+    --emotion-fear: 220 50% 40%;
+    --emotion-temptation: 25 50% 52%;
 
+    /* Gradients */
+    --gradient-help: linear-gradient(135deg, hsl(214 55% 42%), hsl(214 60% 56%));
+    --gradient-warmth: linear-gradient(180deg, hsl(209 52% 11%) 0%, hsl(209 45% 14%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(209 42% 16%) 0%, hsl(209 38% 13%) 100%);
+
+    /* Shadows & Glows */
+    --shadow-soft: 0 4px 24px hsl(209 55% 5% / 0.4);
+    --shadow-gold: 0 0 24px hsl(43 55% 52% / 0.1);
+    --shadow-blue: 0 0 28px hsl(214 68% 58% / 0.15);
+    --glow-gold: 0 0 32px hsl(43 55% 52% / 0.12);
+    --glow-blue: 0 0 32px hsl(214 55% 58% / 0.15);
+
+    /* Typography */
     --font-display: 'Playfair Display', serif;
     --font-body: 'Inter', sans-serif;
 
-    --sidebar-background: 210 50% 11%;
-    --sidebar-foreground: 40 20% 90%;
-    --sidebar-primary: 43 65% 52%;
-    --sidebar-primary-foreground: 210 50% 8%;
-    --sidebar-accent: 210 60% 22%;
-    --sidebar-accent-foreground: 40 20% 90%;
-    --sidebar-border: 210 30% 20%;
-    --sidebar-ring: 43 65% 52%;
+    /* Sidebar (keeping consistent) */
+    --sidebar-background: 209 52% 11%;
+    --sidebar-foreground: 214 30% 93%;
+    --sidebar-primary: 43 55% 52%;
+    --sidebar-primary-foreground: 209 52% 8%;
+    --sidebar-accent: 209 45% 24%;
+    --sidebar-accent-foreground: 214 30% 93%;
+    --sidebar-border: 209 25% 22%;
+    --sidebar-ring: 43 55% 52%;
   }
 }
 
@@ -67,14 +88,15 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground font-body antialiased;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
   html {
     scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    background: var(--gradient-warmth);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -91,6 +113,10 @@
     color: hsl(var(--gold));
   }
 
+  .text-gold-light {
+    color: hsl(var(--gold-light));
+  }
+
   .bg-navy-deep {
     background-color: hsl(var(--navy-deep));
   }
@@ -100,7 +126,7 @@
   }
 
   .glow-blue {
-    box-shadow: var(--shadow-blue);
+    box-shadow: var(--glow-blue);
   }
 
   .gradient-help {
@@ -108,8 +134,62 @@
   }
 
   .glass-card {
-    background: hsl(var(--navy-mid) / 0.6);
-    backdrop-filter: blur(12px);
+    background: var(--gradient-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border) / 0.4);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .user-bubble {
+    background: linear-gradient(135deg, hsl(var(--gold) / 0.15), hsl(var(--gold) / 0.08));
+    border: 1px solid hsl(var(--gold) / 0.12);
+  }
+
+  .input-field {
+    background: hsl(var(--navy-light));
     border: 1px solid hsl(var(--border) / 0.5);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .input-field:focus {
+    border-color: hsl(var(--gold) / 0.4);
+    box-shadow: 0 0 0 3px hsl(var(--gold) / 0.08);
+  }
+
+  /* Emotion card variants */
+  .emotion-card-anxiety {
+    border-color: hsl(var(--emotion-anxiety) / 0.2);
+    background: linear-gradient(145deg, hsl(var(--emotion-anxiety) / 0.08), hsl(var(--navy-mid) / 0.6));
+  }
+  .emotion-card-anxiety:hover {
+    border-color: hsl(var(--emotion-anxiety) / 0.35);
+    box-shadow: 0 0 20px hsl(var(--emotion-anxiety) / 0.1);
+  }
+
+  .emotion-card-sadness {
+    border-color: hsl(var(--emotion-sadness) / 0.2);
+    background: linear-gradient(145deg, hsl(var(--emotion-sadness) / 0.08), hsl(var(--navy-mid) / 0.6));
+  }
+  .emotion-card-sadness:hover {
+    border-color: hsl(var(--emotion-sadness) / 0.35);
+    box-shadow: 0 0 20px hsl(var(--emotion-sadness) / 0.1);
+  }
+
+  .emotion-card-fear {
+    border-color: hsl(var(--emotion-fear) / 0.2);
+    background: linear-gradient(145deg, hsl(var(--emotion-fear) / 0.08), hsl(var(--navy-mid) / 0.6));
+  }
+  .emotion-card-fear:hover {
+    border-color: hsl(var(--emotion-fear) / 0.35);
+    box-shadow: 0 0 20px hsl(var(--emotion-fear) / 0.1);
+  }
+
+  .emotion-card-temptation {
+    border-color: hsl(var(--emotion-temptation) / 0.2);
+    background: linear-gradient(145deg, hsl(var(--emotion-temptation) / 0.08), hsl(var(--navy-mid) / 0.6));
+  }
+  .emotion-card-temptation:hover {
+    border-color: hsl(var(--emotion-temptation) / 0.35);
+    box-shadow: 0 0 20px hsl(var(--emotion-temptation) / 0.1);
   }
 }
