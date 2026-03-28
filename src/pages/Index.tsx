@@ -44,11 +44,9 @@ const Index = () => {
   const recognitionRef = useRef<any>(null);
   const handleSubmitRef = useRef<(q: string) => void>(() => {});
 
-  // Speech Recognition setup
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
-
     const recognition = new SR();
     recognition.lang = "pt-BR";
     recognition.continuous = false;
@@ -59,7 +57,6 @@ const Index = () => {
         .map((result: any) => result[0].transcript)
         .join("");
       setInput(transcript);
-
       if (event.results[event.results.length - 1].isFinal) {
         const finalText = Array.from(event.results)
           .map((result: any) => result[0].transcript)
@@ -74,18 +71,10 @@ const Index = () => {
         }
       }
     };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-      setVoiceStatus("idle");
-    };
+    recognition.onerror = () => { setIsListening(false); setVoiceStatus("idle"); };
     recognition.onend = () => setIsListening(false);
-
     recognitionRef.current = recognition;
-
-    return () => {
-      recognition.abort();
-    };
+    return () => { recognition.abort(); };
   }, []);
 
   const toggleListening = () => {
@@ -104,42 +93,28 @@ const Index = () => {
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-      }
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }, 120);
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [chatHistory, isLoading, scrollToBottom]);
+  useEffect(() => { scrollToBottom(); }, [chatHistory, isLoading, scrollToBottom]);
+  useEffect(() => { if (screen === "chat") inputRef.current?.focus(); }, [screen]);
 
-  useEffect(() => {
-    if (screen === "chat" && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [screen]);
-
-  const simulateResponse = useCallback((question: string, append: boolean = true) => {
+  const simulateResponse = useCallback((question: string, append = true) => {
     setIsLoading(true);
-
     if (append) {
       setChatHistory((prev) => [...prev, { question, response: null }]);
     } else {
       setChatHistory([{ question, response: null }]);
     }
-
     setScreen("chat");
     setInput("");
-
     const delay = 1500 + Math.random() * 1000;
     setTimeout(() => {
       const response = generateMockResponse(question);
       setChatHistory((prev) =>
         prev.map((entry, i) =>
-          i === prev.length - 1 && entry.response === null
-            ? { ...entry, response }
-            : entry
+          i === prev.length - 1 && entry.response === null ? { ...entry, response } : entry
         )
       );
       setIsLoading(false);
@@ -150,7 +125,6 @@ const Index = () => {
     if (!question.trim() || isLoading) return;
     simulateResponse(question, screen === "chat");
   };
-
   handleSubmitRef.current = handleSubmit;
 
   const handleHelpSelect = (label: string, response: BibleResponse) => {
@@ -158,7 +132,6 @@ const Index = () => {
     setChatHistory([{ question, response: null }]);
     setScreen("chat");
     setIsLoading(true);
-
     setTimeout(() => {
       setChatHistory([{ question, response }]);
       setIsLoading(false);
@@ -180,51 +153,39 @@ const Index = () => {
     return <BibleReader onBack={handleBack} onReflect={handleReflect} />;
   }
 
-  // Get greeting based on time of day
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Bom dia! ☀️";
-    if (hour < 18) return "Boa tarde! 🌤️";
-    return "Boa noite! 🌙";
+    const h = new Date().getHours();
+    if (h < 12) return "Bom dia ☀️";
+    if (h < 18) return "Boa tarde 🌤️";
+    return "Boa noite 🌙";
   };
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
-      {/* Header for chat */}
+      {/* Chat header */}
       <AnimatePresence>
         {screen === "chat" && (
           <motion.header
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/30 bg-background/85 px-4 py-3 backdrop-blur-xl"
+            exit={{ opacity: 0, y: -16 }}
+            className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/20 bg-background/90 px-5 py-3.5 backdrop-blur-2xl"
           >
-            <button onClick={handleBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
-              <ArrowLeft size={20} />
+            <button onClick={handleBack} className="rounded-full p-1.5 text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/40">
+              <ArrowLeft size={18} />
             </button>
-            <img src={bibleLogo} alt="" className="h-7 w-7 opacity-90" />
+            <img src={bibleLogo} alt="" className="h-7 w-7 opacity-85" />
             <div className="flex flex-col">
               <span className="font-display text-sm font-semibold text-gold">Caminho Vivo</span>
               <AnimatePresence mode="wait">
                 {isLoading ? (
-                  <motion.span
-                    key="loading"
-                    initial={{ opacity: 0, y: -2 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-[10px] italic text-blue-calm/70"
-                  >
-                    {headerPhrase}
-                  </motion.span>
+                  <motion.span key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="text-[10px] italic text-blue-calm"
+                  >{headerPhrase}</motion.span>
                 ) : (
-                  <motion.span
-                    key="online"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-[10px] text-muted-foreground/50"
-                  >
-                    online
-                  </motion.span>
+                  <motion.span key="online" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="text-[10px] text-muted-foreground/45"
+                  >online</motion.span>
                 )}
               </AnimatePresence>
             </div>
@@ -232,34 +193,35 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      {/* Main content */}
+      {/* Content */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-lg px-5">
           <AnimatePresence mode="wait">
+            {/* ── HOME ── */}
             {screen === "home" && (
               <motion.div
                 key="home"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.35 }}
-                className="flex flex-col items-center py-8 gap-6"
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4 }}
+                className="flex flex-col items-center pb-10 pt-12 gap-7"
               >
-                {/* Logo & branding */}
+                {/* Logo */}
                 <motion.div
-                  className="flex flex-col items-center gap-3"
-                  initial={{ opacity: 0, y: -10 }}
+                  className="flex flex-col items-center gap-2"
+                  initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
                 >
                   <img
                     src={bibleLogo}
                     alt="Caminho Vivo"
-                    width={56}
-                    height={56}
-                    className="drop-shadow-[0_0_20px_hsl(43_55%_52%/0.15)]"
+                    width={52}
+                    height={52}
+                    className="drop-shadow-[0_0_18px_hsl(43_55%_52%/0.12)]"
                   />
-                  <h1 className="font-display text-2xl font-bold text-gold">Caminho Vivo</h1>
+                  <h1 className="font-display text-xl font-bold text-gold tracking-wide">Caminho Vivo</h1>
                 </motion.div>
 
                 {/* Greeting */}
@@ -267,18 +229,18 @@ const Index = () => {
                   className="w-full text-center"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.15, duration: 0.4 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
                 >
-                  <p className="text-lg font-medium text-foreground/90">{getGreeting()}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Como você está hoje?</p>
+                  <p className="text-[15px] font-medium text-foreground/85">{getGreeting()}</p>
+                  <p className="mt-1.5 text-sm text-muted-foreground/70">Como você está hoje?</p>
                 </motion.div>
 
                 {/* Daily verse */}
                 <DailyVerseCard onReflect={handleReflect} />
 
                 {/* Suggestions */}
-                <div className="w-full space-y-2.5">
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50 px-1">
+                <div className="w-full space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40 px-1">
                     Perguntas frequentes
                   </p>
                   {suggestions.map((s, i) => (
@@ -286,59 +248,53 @@ const Index = () => {
                   ))}
                 </div>
 
-                {/* Help button — prominent */}
+                {/* Help button */}
                 <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => setScreen("help")}
-                  className="w-full rounded-2xl px-6 py-5 text-base font-semibold text-foreground/95 transition-all duration-300 border"
-                  style={{
-                    background: "linear-gradient(135deg, hsl(43 55% 52% / 0.12), hsl(43 50% 45% / 0.06))",
-                    borderColor: "hsl(43 55% 52% / 0.2)",
-                    boxShadow: "0 0 24px hsl(43 55% 52% / 0.06)",
-                  }}
+                  className="w-full rounded-2xl gold-highlight-btn px-6 py-[18px] text-[15px] font-semibold text-foreground/90"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
+                  transition={{ delay: 0.55, duration: 0.45 }}
                 >
                   <span className="flex items-center justify-center gap-2.5">
-                    <Heart size={18} className="text-gold/70" />
+                    <Heart size={17} className="text-gold/65" strokeWidth={2} />
                     Preciso de ajuda hoje
                   </span>
                 </motion.button>
 
                 {/* Bible button */}
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => setScreen("bible")}
-                  className="w-full rounded-2xl glass-card flex items-center justify-center gap-2.5 px-6 py-4 text-sm font-medium text-foreground/80 transition-all duration-300 hover:border-gold/20"
+                  className="w-full rounded-2xl glass-card flex items-center justify-center gap-2.5 px-6 py-3.5 text-sm font-medium text-foreground/70 transition-all duration-300 hover:border-border/50"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7, duration: 0.4 }}
+                  transition={{ delay: 0.65, duration: 0.4 }}
                 >
-                  <BookOpen size={16} className="text-gold/60" />
+                  <BookOpen size={15} className="text-gold/50" />
                   Ler a Bíblia
                 </motion.button>
 
-                {/* Brand phrase */}
+                {/* Brand */}
                 <motion.p
-                  className="text-[11px] text-muted-foreground/45 italic"
+                  className="text-[11px] text-muted-foreground/35 italic tracking-wide"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.85 }}
+                  transition={{ delay: 0.8 }}
                 >
                   Você não precisa caminhar sozinho. 💙
                 </motion.p>
               </motion.div>
             )}
 
+            {/* ── HELP ── */}
             {screen === "help" && (
               <motion.div
                 key="help"
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 16 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.35 }}
                 className="py-8"
               >
@@ -346,6 +302,7 @@ const Index = () => {
               </motion.div>
             )}
 
+            {/* ── CHAT ── */}
             {screen === "chat" && (
               <motion.div
                 key="chat"
@@ -361,10 +318,9 @@ const Index = () => {
                     ) : (
                       <div className="flex justify-end mb-2">
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.92, y: 8 }}
+                          initial={{ opacity: 0, scale: 0.93, y: 6 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{ ease: "easeOut" }}
-                          className="max-w-[82%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm text-foreground/90 leading-relaxed"
+                          className="max-w-[80%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm leading-relaxed text-foreground/85"
                         >
                           {entry.question}
                         </motion.div>
@@ -372,7 +328,6 @@ const Index = () => {
                     )}
                   </div>
                 ))}
-
                 <AnimatePresence>
                   {isLoading && <TypingIndicator />}
                 </AnimatePresence>
@@ -382,55 +337,56 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Input bar */}
-      <div className="sticky bottom-0 border-t border-border/20 bg-background/92 px-4 pb-4 pt-2.5 backdrop-blur-xl">
-        {/* Voice status message */}
+      {/* ── INPUT BAR ── */}
+      <div className="sticky bottom-0 border-t border-border/15 bg-background/90 px-4 pb-[env(safe-area-inset-bottom,16px)] pt-2.5 backdrop-blur-2xl">
         <AnimatePresence>
           {(isListening || voiceStatus === "processing") && (
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.3 }}
               className="mx-auto mb-2 max-w-lg text-center"
             >
-              <span className="text-xs italic text-blue-calm/80">
+              <span className="text-xs italic text-blue-calm">
                 {isListening ? "Pode falar, estou aqui 💙" : "Entendi... deixa eu te responder 💙"}
               </span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="mx-auto flex max-w-lg items-center gap-2.5">
+        <div className="mx-auto flex max-w-lg items-center gap-2">
           <motion.button
             onClick={toggleListening}
-            animate={isListening ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+            animate={isListening ? { scale: [1, 1.08, 1] } : { scale: 1 }}
             transition={isListening ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : {}}
             whileTap={{ scale: 0.9 }}
-            className={`flex-shrink-0 rounded-full p-3 transition-all duration-300 ${
+            className={`flex-shrink-0 rounded-full p-2.5 transition-all duration-300 ${
               isListening
-                ? "bg-[hsl(var(--blue-soft)/0.12)] text-blue-calm shadow-[0_0_16px_hsl(214_55%_65%/0.2)]"
-                : "text-muted-foreground/50 hover:text-foreground/70 hover:bg-secondary/40"
+                ? "bg-[hsl(var(--blue-soft)/0.1)] text-blue-calm shadow-[0_0_14px_hsl(213_55%_68%/0.15)]"
+                : "text-muted-foreground/45 hover:text-foreground/65 hover:bg-secondary/30"
             }`}
           >
-            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            {isListening ? <MicOff size={19} /> : <Mic size={19} />}
           </motion.button>
+
           <input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
             placeholder={isListening ? "Ouvindo..." : "Como posso te ajudar hoje?"}
-            className="flex-1 rounded-full input-field px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+            className="flex-1 rounded-full input-field px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none"
             readOnly={isListening}
           />
+
           <motion.button
             onClick={() => handleSubmit(input)}
             disabled={!input.trim() || isLoading}
             whileTap={{ scale: 0.88 }}
-            className="flex-shrink-0 rounded-full bg-[hsl(var(--gold))] p-3 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-[hsl(var(--gold-light))] disabled:opacity-15"
+            className="flex-shrink-0 rounded-full bg-[hsl(var(--gold))] p-2.5 text-primary-foreground transition-all duration-200 hover:bg-[hsl(var(--gold-light))] disabled:opacity-10"
+            style={{ boxShadow: "0 2px 10px hsl(43 55% 52% / 0.15)" }}
           >
-            <Send size={18} />
+            <Send size={17} />
           </motion.button>
         </div>
       </div>
