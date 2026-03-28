@@ -1,3 +1,5 @@
+import { WARMTH_PHRASES } from "./personality";
+
 export interface BibleResponse {
   acolhimento: string;
   contexto: string;
