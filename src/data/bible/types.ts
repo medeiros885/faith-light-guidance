@@ -16,6 +16,14 @@ export interface BibleBook {
   chapters: BibleChapter[];
 }
 
+export interface BibleBookMeta {
+  id: string;
+  name: string;
+  abbrev: string;
+  testament: "old" | "new";
+  chapterCount: number;
+}
+
 export interface FavoriteVerse {
   bookId: string;
   bookName: string;
