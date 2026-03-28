@@ -55,10 +55,14 @@
     --emotion-fear: 220 50% 40%;
     --emotion-temptation: 25 50% 52%;
 
+    /* Path/journey accent */
+    --path-glow: 190 50% 55%;
+
     /* Gradients */
     --gradient-help: linear-gradient(135deg, hsl(214 55% 42%), hsl(214 60% 56%));
     --gradient-warmth: linear-gradient(180deg, hsl(209 52% 11%) 0%, hsl(209 45% 14%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(209 42% 16%) 0%, hsl(209 38% 13%) 100%);
+    --gradient-path: linear-gradient(180deg, hsl(190 50% 55% / 0.08) 0%, transparent 60%);
 
     /* Shadows & Glows */
     --shadow-soft: 0 4px 24px hsl(209 55% 5% / 0.4);
