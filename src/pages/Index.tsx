@@ -33,6 +33,7 @@ const Index = () => {
   const [chatHistory, setChatHistory] = useState<ChatEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<"idle" | "listening" | "processing">("idle");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -56,6 +57,17 @@ const Index = () => {
       // Auto-submit on final result
       if (event.results[event.results.length - 1].isFinal) {
         setIsListening(false);
+        setVoiceStatus("processing");
+        // Brief pause to show "Entendi..." before submitting
+        const finalText = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join("");
+        setTimeout(() => {
+          setVoiceStatus("idle");
+          if (finalText.trim()) {
+            // Will be submitted via effect
+          }
+        }, 1800);
       }
     };
 
@@ -255,7 +267,7 @@ const Index = () => {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.75 }}
                 >
-                  Você também pode usar o microfone para falar
+                  Se preferir, pode falar comigo 💙
                 </motion.p>
               </motion.div>
             )}
@@ -310,25 +322,44 @@ const Index = () => {
       </div>
 
       {/* Input bar */}
-      <div className="sticky bottom-0 border-t border-border/25 bg-background/90 px-4 py-3 backdrop-blur-xl">
+      <div className="sticky bottom-0 border-t border-border/25 bg-background/90 px-4 pb-3 pt-2 backdrop-blur-xl">
+        {/* Voice status message */}
+        <AnimatePresence>
+          {(isListening || voiceStatus === "processing") && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              className="mx-auto mb-2 max-w-lg text-center"
+            >
+              <span className="text-xs italic text-blue-calm">
+                {isListening ? "Estou te ouvindo..." : "Entendi... deixa eu te responder 💙"}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="mx-auto flex max-w-lg items-center gap-2">
-          <button
+          <motion.button
             onClick={toggleListening}
-            className={`flex-shrink-0 rounded-full p-2 transition-all duration-200 ${
+            animate={isListening ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+            transition={isListening ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : {}}
+            className={`flex-shrink-0 rounded-full p-2.5 transition-all duration-300 ${
               isListening
-                ? "bg-destructive/20 text-destructive animate-pulse"
+                ? "bg-blue-soft/20 text-blue-calm shadow-[0_0_16px_hsl(214_55%_65%/0.3)]"
                 : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-secondary/50"
             }`}
           >
             {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-          </button>
+          </motion.button>
           <input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
-            placeholder="Como posso te ajudar hoje?"
+            placeholder={isListening ? "Ouvindo..." : "Como posso te ajudar hoje?"}
             className="flex-1 rounded-full input-field px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+            readOnly={isListening}
           />
           <button
             onClick={() => handleSubmit(input)}
