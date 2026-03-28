@@ -56,18 +56,17 @@ const Index = () => {
 
       // Auto-submit on final result
       if (event.results[event.results.length - 1].isFinal) {
-        setIsListening(false);
-        setVoiceStatus("processing");
-        // Brief pause to show "Entendi..." before submitting
         const finalText = Array.from(event.results)
           .map((result: any) => result[0].transcript)
           .join("");
-        setTimeout(() => {
-          setVoiceStatus("idle");
-          if (finalText.trim()) {
-            // Will be submitted via effect
-          }
-        }, 1800);
+        setIsListening(false);
+        if (finalText.trim()) {
+          setVoiceStatus("processing");
+          setTimeout(() => {
+            setVoiceStatus("idle");
+            handleSubmitRef.current(finalText);
+          }, 1800);
+        }
       }
     };
 
