@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Send, ArrowLeft } from "lucide-react";
+import { Mic, MicOff, Send, ArrowLeft } from "lucide-react";
 import bibleLogo from "@/assets/bible-logo.png";
 import SuggestionCard from "@/components/SuggestionCard";
 import ResponseView from "@/components/ResponseView";
@@ -32,8 +32,54 @@ const Index = () => {
   const [input, setInput] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Speech Recognition setup
+  useEffect(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    const recognition = new SR();
+    recognition.lang = "pt-BR";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0].transcript)
+        .join("");
+      setInput(transcript);
+
+      // Auto-submit on final result
+      if (event.results[event.results.length - 1].isFinal) {
+        setIsListening(false);
+      }
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.abort();
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      setInput("");
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -266,8 +312,15 @@ const Index = () => {
       {/* Input bar */}
       <div className="sticky bottom-0 border-t border-border/25 bg-background/90 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-lg items-center gap-2">
-          <button className="flex-shrink-0 rounded-full p-2 text-muted-foreground/60 transition-colors duration-200 hover:text-foreground/80 hover:bg-secondary/50">
-            <Mic size={20} />
+          <button
+            onClick={toggleListening}
+            className={`flex-shrink-0 rounded-full p-2 transition-all duration-200 ${
+              isListening
+                ? "bg-destructive/20 text-destructive animate-pulse"
+                : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-secondary/50"
+            }`}
+          >
+            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
           </button>
           <input
             ref={inputRef}
