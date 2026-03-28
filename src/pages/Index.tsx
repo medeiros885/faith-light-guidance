@@ -142,6 +142,8 @@ const Index = () => {
     simulateResponse(question, screen === "chat");
   };
 
+  handleSubmitRef.current = handleSubmit;
+
   const handleHelpSelect = (label: string, response: BibleResponse) => {
     const question = `Preciso de ajuda com: ${label}`;
     setChatHistory([{ question, response: null }]);
