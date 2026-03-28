@@ -176,6 +176,10 @@ const Index = () => {
     simulateResponse(verseText, false);
   };
 
+  if (screen === "bible") {
+    return <BibleReader onBack={handleBack} onReflect={handleReflect} />;
+  }
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
       {/* Header for chat */}
@@ -286,11 +290,24 @@ const Index = () => {
                   💙 Preciso de ajuda hoje
                 </motion.button>
 
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.01 }}
+                  onClick={() => setScreen("bible")}
+                  className="w-full rounded-2xl glass-card flex items-center justify-center gap-2.5 px-6 py-4 text-base font-semibold text-foreground/90 shadow-md transition-all duration-300 hover:border-gold/20 mt-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7, duration: 0.4 }}
+                >
+                  <BookOpen size={18} className="text-gold/70" />
+                  Ler a Bíblia
+                </motion.button>
+
                 <motion.p
                   className="mt-5 text-[11px] text-muted-foreground/50 italic"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.75 }}
+                  transition={{ delay: 0.85 }}
                 >
                   Você não precisa caminhar sozinho. 💙
                 </motion.p>
