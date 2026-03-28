@@ -1,14 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Search, BookOpen, Heart, X } from "lucide-react";
-import { bibleBooks } from "@/data/bible/books";
+import { ArrowLeft, Search, Heart, X, Loader2 } from "lucide-react";
+import { loadBibleIndex, loadBook, searchBible } from "@/data/bible/loader";
 import { useFavoriteVerses } from "@/hooks/useFavoriteVerses";
 import BibleBookList from "./BibleBookList";
 import BibleChapterView from "./BibleChapterView";
 import BibleVerseView from "./BibleVerseView";
 import BibleSearchResults from "./BibleSearchResults";
 import BibleFavorites from "./BibleFavorites";
-import type { BibleBook, BibleChapter } from "@/data/bible/types";
+import type { BibleBook, BibleBookMeta, BibleChapter } from "@/data/bible/types";
 
 interface BibleReaderProps {
   onBack: () => void;
@@ -19,41 +19,43 @@ type View = "books" | "chapters" | "verses" | "search" | "favorites";
 
 const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
   const [view, setView] = useState<View>("books");
+  const [bookIndex, setBookIndex] = useState<BibleBookMeta[]>([]);
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<BibleChapter | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [isLoadingBook, setIsLoadingBook] = useState(false);
   const favoriteHook = useFavoriteVerses();
 
-  const searchResults = useMemo(() => {
-    if (searchQuery.length < 2) return [];
-    const q = searchQuery.toLowerCase();
-    const results: { bookName: string; bookId: string; chapter: number; verse: number; text: string }[] = [];
-    for (const book of bibleBooks) {
-      for (const ch of book.chapters) {
-        for (const v of ch.verses) {
-          if (v.text.toLowerCase().includes(q)) {
-            results.push({
-              bookName: book.name,
-              bookId: book.id,
-              chapter: ch.number,
-              verse: v.number,
-              text: v.text,
-            });
-          }
-          if (results.length >= 30) break;
-        }
-        if (results.length >= 30) break;
-      }
-      if (results.length >= 30) break;
+  // Load index on mount
+  useEffect(() => {
+    loadBibleIndex().then(setBookIndex);
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
     }
-    return results;
+    setIsSearching(true);
+    const timeout = setTimeout(async () => {
+      const results = await searchBible(searchQuery, 30);
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 400);
+    return () => clearTimeout(timeout);
   }, [searchQuery]);
 
-  const handleBookSelect = (book: BibleBook) => {
+  const handleBookSelect = useCallback(async (meta: BibleBookMeta) => {
+    setIsLoadingBook(true);
+    const book = await loadBook(meta.id);
     setSelectedBook(book);
     setView("chapters");
-  };
+    setIsLoadingBook(false);
+  }, []);
 
   const handleChapterSelect = (chapter: BibleChapter) => {
     setSelectedChapter(chapter);
@@ -164,6 +166,23 @@ const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
         </AnimatePresence>
       </motion.header>
 
+      {/* Loading overlay */}
+      <AnimatePresence>
+        {isLoadingBook && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm"
+          >
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 size={24} className="animate-spin text-gold/70" />
+              <span className="text-xs text-muted-foreground/60">Carregando...</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-lg px-4 py-4">
@@ -176,7 +195,7 @@ const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.25 }}
               >
-                <BibleBookList onSelect={handleBookSelect} />
+                <BibleBookList books={bookIndex} onSelect={handleBookSelect} />
               </motion.div>
             )}
 
@@ -223,6 +242,7 @@ const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
                 <BibleSearchResults
                   query={searchQuery}
                   results={searchResults}
+                  isSearching={isSearching}
                   favoriteHook={favoriteHook}
                   onReflect={onReflect}
                 />
