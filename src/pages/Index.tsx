@@ -172,6 +172,10 @@ const Index = () => {
     setVoiceStatus("idle");
   };
 
+  const handleReflect = (verseText: string) => {
+    simulateResponse(verseText, false);
+  };
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
       {/* Header for chat */}
