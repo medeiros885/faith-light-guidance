@@ -1,17 +1,18 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Send, ArrowLeft } from "lucide-react";
 import bibleLogo from "@/assets/bible-logo.png";
 import SuggestionCard from "@/components/SuggestionCard";
 import ResponseView from "@/components/ResponseView";
 import HelpTopics from "@/components/HelpTopics";
+import TypingIndicator from "@/components/TypingIndicator";
 import { generateMockResponse, type BibleResponse } from "@/data/mockResponses";
 
 type Screen = "home" | "help" | "chat";
 
 interface ChatEntry {
   question: string;
-  response: BibleResponse;
+  response: BibleResponse | null;
 }
 
 const suggestions = [
@@ -24,30 +25,77 @@ const Index = () => {
   const [screen, setScreen] = useState<Screen>("home");
   const [input, setInput] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      }
+    }, 100);
+  }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    scrollToBottom();
+  }, [chatHistory, isLoading, scrollToBottom]);
+
+  // Focus input when entering chat
+  useEffect(() => {
+    if (screen === "chat" && inputRef.current) {
+      inputRef.current.focus();
     }
-  }, [chatHistory]);
+  }, [screen]);
+
+  const simulateResponse = useCallback((question: string, append: boolean = true) => {
+    setIsLoading(true);
+
+    if (append) {
+      setChatHistory((prev) => [...prev, { question, response: null }]);
+    } else {
+      setChatHistory([{ question, response: null }]);
+    }
+
+    setScreen("chat");
+    setInput("");
+
+    // Simulate typing delay (800-1500ms)
+    const delay = 800 + Math.random() * 700;
+    setTimeout(() => {
+      const response = generateMockResponse(question);
+      setChatHistory((prev) =>
+        prev.map((entry, i) =>
+          i === prev.length - 1 && entry.response === null
+            ? { ...entry, response }
+            : entry
+        )
+      );
+      setIsLoading(false);
+    }, delay);
+  }, []);
 
   const handleSubmit = (question: string) => {
-    if (!question.trim()) return;
-    const response = generateMockResponse(question);
-    setChatHistory((prev) => [...prev, { question, response }]);
-    setInput("");
-    setScreen("chat");
+    if (!question.trim() || isLoading) return;
+    simulateResponse(question, screen === "chat");
   };
 
   const handleHelpSelect = (label: string, response: BibleResponse) => {
-    setChatHistory([{ question: `Preciso de ajuda com: ${label}`, response }]);
+    const question = `Preciso de ajuda com: ${label}`;
+    setChatHistory([{ question, response: null }]);
     setScreen("chat");
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setChatHistory([{ question, response }]);
+      setIsLoading(false);
+    }, 1000);
   };
 
   const handleBack = () => {
     setScreen("home");
     setChatHistory([]);
+    setIsLoading(false);
   };
 
   return (
@@ -65,7 +113,21 @@ const Index = () => {
               <ArrowLeft size={20} />
             </button>
             <img src={bibleLogo} alt="" className="h-7 w-7" />
-            <span className="font-display text-sm font-semibold text-gold">Luz na Palavra</span>
+            <div className="flex flex-col">
+              <span className="font-display text-sm font-semibold text-gold">Luz na Palavra</span>
+              <AnimatePresence>
+                {isLoading && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-[10px] text-muted-foreground"
+                  >
+                    escrevendo...
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.header>
         )}
       </AnimatePresence>
@@ -82,7 +144,6 @@ const Index = () => {
                 exit={{ opacity: 0, y: -20 }}
                 className="flex min-h-[calc(100dvh-80px)] flex-col items-center justify-center py-8"
               >
-                {/* Logo */}
                 <motion.img
                   src={bibleLogo}
                   alt="Luz na Palavra"
@@ -112,21 +173,18 @@ const Index = () => {
                   Faça uma pergunta e receba uma resposta baseada na Bíblia
                 </motion.p>
 
-                {/* Suggestions */}
                 <div className="mt-8 w-full space-y-2">
                   {suggestions.map((s, i) => (
                     <SuggestionCard key={s} text={s} index={i} onClick={handleSubmit} />
                   ))}
                 </div>
 
-                {/* Divider */}
                 <div className="my-6 flex w-full items-center gap-3">
                   <div className="h-px flex-1 bg-border/50" />
                   <span className="text-xs text-muted-foreground">ou</span>
                   <div className="h-px flex-1 bg-border/50" />
                 </div>
 
-                {/* Help button */}
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={() => setScreen("help")}
@@ -166,11 +224,30 @@ const Index = () => {
                 key="chat"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="py-4"
+                className="py-4 space-y-2"
               >
                 {chatHistory.map((entry, i) => (
-                  <ResponseView key={i} question={entry.question} response={entry.response} />
+                  <div key={i}>
+                    {entry.response ? (
+                      <ResponseView question={entry.question} response={entry.response} />
+                    ) : (
+                      /* Show only the user bubble while loading */
+                      <div className="flex justify-end mb-2">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          className="max-w-[80%] rounded-2xl rounded-tr-sm bg-gold/20 px-4 py-3 text-sm text-foreground"
+                        >
+                          {entry.question}
+                        </motion.div>
+                      </div>
+                    )}
+                  </div>
                 ))}
+
+                <AnimatePresence>
+                  {isLoading && <TypingIndicator />}
+                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
@@ -184,6 +261,7 @@ const Index = () => {
             <Mic size={20} />
           </button>
           <input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
@@ -192,7 +270,7 @@ const Index = () => {
           />
           <button
             onClick={() => handleSubmit(input)}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isLoading}
             className="flex-shrink-0 rounded-full bg-gold p-2.5 text-primary-foreground transition-all hover:bg-gold-light disabled:opacity-30"
           >
             <Send size={18} />
