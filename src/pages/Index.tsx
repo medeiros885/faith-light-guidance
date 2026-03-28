@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Send, ArrowLeft, BookOpen } from "lucide-react";
+import { Mic, MicOff, Send, ArrowLeft, BookOpen, Heart } from "lucide-react";
 import bibleLogo from "@/assets/bible-logo.png";
 import SuggestionCard from "@/components/SuggestionCard";
 import ResponseView from "@/components/ResponseView";
 import HelpTopics from "@/components/HelpTopics";
 import TypingIndicator from "@/components/TypingIndicator";
+import DailyVerseCard from "@/components/DailyVerseCard";
 import BibleReader from "@/components/bible/BibleReader";
 import { generateMockResponse, type BibleResponse } from "@/data/mockResponses";
 
@@ -131,7 +132,6 @@ const Index = () => {
     setScreen("chat");
     setInput("");
 
-    // Slightly longer delay for realism
     const delay = 1500 + Math.random() * 1000;
     setTimeout(() => {
       const response = generateMockResponse(question);
@@ -179,6 +179,14 @@ const Index = () => {
   if (screen === "bible") {
     return <BibleReader onBack={handleBack} onReflect={handleReflect} />;
   }
+
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Bom dia! ☀️";
+    if (hour < 18) return "Boa tarde! 🌤️";
+    return "Boa noite! 🌙";
+  };
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
@@ -235,76 +243,87 @@ const Index = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.35 }}
-                className="flex min-h-[calc(100dvh-80px)] flex-col items-center justify-center py-10"
+                className="flex flex-col items-center py-8 gap-6"
               >
-                <motion.img
-                  src={bibleLogo}
-                  alt="Caminho Vivo"
-                  width={72}
-                  height={72}
-                  className="mb-5 drop-shadow-[0_0_24px_hsl(43_55%_52%/0.2)]"
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                />
-
-                <motion.h1
-                  className="font-display text-3xl font-bold text-gold"
-                  initial={{ opacity: 0, y: 8 }}
+                {/* Logo & branding */}
+                <motion.div
+                  className="flex flex-col items-center gap-3"
+                  initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15, duration: 0.4 }}
+                  transition={{ duration: 0.5 }}
                 >
-                  Caminho Vivo
-                </motion.h1>
+                  <img
+                    src={bibleLogo}
+                    alt="Caminho Vivo"
+                    width={56}
+                    height={56}
+                    className="drop-shadow-[0_0_20px_hsl(43_55%_52%/0.15)]"
+                  />
+                  <h1 className="font-display text-2xl font-bold text-gold">Caminho Vivo</h1>
+                </motion.div>
 
-                <motion.p
-                  className="mt-2.5 max-w-[300px] text-center text-sm leading-relaxed text-muted-foreground"
+                {/* Greeting */}
+                <motion.div
+                  className="w-full text-center"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.25, duration: 0.4 }}
+                  transition={{ delay: 0.15, duration: 0.4 }}
                 >
-                  Converse, desabafe e receba direção com base na Palavra.
-                </motion.p>
+                  <p className="text-lg font-medium text-foreground/90">{getGreeting()}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Como você está hoje?</p>
+                </motion.div>
 
-                <div className="mt-9 w-full space-y-2.5">
+                {/* Daily verse */}
+                <DailyVerseCard onReflect={handleReflect} />
+
+                {/* Suggestions */}
+                <div className="w-full space-y-2.5">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50 px-1">
+                    Perguntas frequentes
+                  </p>
                   {suggestions.map((s, i) => (
                     <SuggestionCard key={s} text={s} index={i} onClick={handleSubmit} />
                   ))}
                 </div>
 
-                <div className="my-7 flex w-full items-center gap-4">
-                  <div className="h-px flex-1 bg-border/30" />
-                  <span className="text-xs text-muted-foreground/60">ou</span>
-                  <div className="h-px flex-1 bg-border/30" />
-                </div>
-
+                {/* Help button — prominent */}
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={{ scale: 0.96 }}
                   whileHover={{ scale: 1.01 }}
                   onClick={() => setScreen("help")}
-                  className="w-full rounded-2xl gradient-help px-6 py-4.5 text-base font-semibold text-foreground/95 shadow-md transition-all duration-300"
+                  className="w-full rounded-2xl px-6 py-5 text-base font-semibold text-foreground/95 transition-all duration-300 border"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(43 55% 52% / 0.12), hsl(43 50% 45% / 0.06))",
+                    borderColor: "hsl(43 55% 52% / 0.2)",
+                    boxShadow: "0 0 24px hsl(43 55% 52% / 0.06)",
+                  }}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6, duration: 0.4 }}
                 >
-                  💙 Preciso de ajuda hoje
+                  <span className="flex items-center justify-center gap-2.5">
+                    <Heart size={18} className="text-gold/70" />
+                    Preciso de ajuda hoje
+                  </span>
                 </motion.button>
 
+                {/* Bible button */}
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   whileHover={{ scale: 1.01 }}
                   onClick={() => setScreen("bible")}
-                  className="w-full rounded-2xl glass-card flex items-center justify-center gap-2.5 px-6 py-4 text-base font-semibold text-foreground/90 shadow-md transition-all duration-300 hover:border-gold/20 mt-3"
+                  className="w-full rounded-2xl glass-card flex items-center justify-center gap-2.5 px-6 py-4 text-sm font-medium text-foreground/80 transition-all duration-300 hover:border-gold/20"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7, duration: 0.4 }}
                 >
-                  <BookOpen size={18} className="text-gold/70" />
+                  <BookOpen size={16} className="text-gold/60" />
                   Ler a Bíblia
                 </motion.button>
 
+                {/* Brand phrase */}
                 <motion.p
-                  className="mt-5 text-[11px] text-muted-foreground/50 italic"
+                  className="text-[11px] text-muted-foreground/45 italic"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.85 }}
@@ -390,7 +409,7 @@ const Index = () => {
             whileTap={{ scale: 0.9 }}
             className={`flex-shrink-0 rounded-full p-3 transition-all duration-300 ${
               isListening
-                ? "bg-blue-soft/12 text-blue-calm shadow-[0_0_16px_hsl(214_55%_65%/0.2)]"
+                ? "bg-[hsl(var(--blue-soft)/0.12)] text-blue-calm shadow-[0_0_16px_hsl(214_55%_65%/0.2)]"
                 : "text-muted-foreground/50 hover:text-foreground/70 hover:bg-secondary/40"
             }`}
           >
@@ -409,7 +428,7 @@ const Index = () => {
             onClick={() => handleSubmit(input)}
             disabled={!input.trim() || isLoading}
             whileTap={{ scale: 0.88 }}
-            className="flex-shrink-0 rounded-full bg-gold p-3 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-gold-light disabled:opacity-15"
+            className="flex-shrink-0 rounded-full bg-[hsl(var(--gold))] p-3 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-[hsl(var(--gold-light))] disabled:opacity-15"
           >
             <Send size={18} />
           </motion.button>
