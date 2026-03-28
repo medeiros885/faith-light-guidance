@@ -1,3 +1,5 @@
+import { WARMTH_PHRASES } from "./personality";
+
 export interface BibleResponse {
   acolhimento: string;
   contexto: string;
@@ -79,6 +81,15 @@ export const helpTopics = [
   }
 ];
 
+/** Pick a random phrase from a category for variety */
+function pick(arr: string[]): string {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** Re-export personality for future AI integration */
+export { SYSTEM_PROMPT } from "./personality";
+export { WARMTH_PHRASES };
+
 export function generateMockResponse(question: string): BibleResponse {
   const q = question.toLowerCase();
 
@@ -127,9 +138,22 @@ export function generateMockResponse(question: string): BibleResponse {
     };
   }
 
+  // Detect emotional keywords for a more empathetic default
+  const isSad = /trist|sozinho|chorar|choran|sofr|doi|dor|perdi|saudade|vazio/.test(q);
+  const isAnxious = /ansios|preocup|nervos|agonia|sufoc|pânico|desespero/.test(q);
+  const isAfraid = /medo|assustad|terror|pavor|receio/.test(q);
+
+  if (isSad || isAnxious || isAfraid) {
+    const emotion = isSad ? "tristeza" : isAnxious ? "ansiedade" : "medo";
+    const topic = helpTopics.find(t => t.id === (emotion === "tristeza" ? "tristeza" : emotion === "ansiedade" ? "ansiedade" : "medo"));
+    if (topic) {
+      return topic.response;
+    }
+  }
+
   // Default conversational response
   return {
-    acolhimento: "Que bom que você perguntou isso! Fico feliz que você veio aqui conversar. Vamos buscar juntos o que a Palavra diz sobre isso. 😊",
+    acolhimento: `${pick(WARMTH_PHRASES.validation)} ${pick(WARMTH_PHRASES.transition)} 😊`,
     contexto: "A Bíblia é incrivelmente rica sobre todos os aspectos da vida. Deus se importa com cada detalhe — das grandes questões existenciais até as coisas do dia a dia.",
     explicacao: "Quando a gente busca respostas na Palavra com o coração aberto, Deus tem um jeito de falar exatamente o que a gente precisa ouvir. Às vezes é uma confirmação, às vezes é uma direção nova, às vezes é simplesmente paz.",
     aplicacao: "Minha sugestão? Separa um momento de quietude hoje — pode ser 10 minutos. Abre a Bíblia (ou um app), lê um Salmo com calma, e depois fica em silêncio. Pergunta a Deus: 'O que Tu queres me dizer hoje?' E espera. Ele fala.",
@@ -138,6 +162,6 @@ export function generateMockResponse(question: string): BibleResponse {
       "Salmos 119:105 — \"Lâmpada para os meus pés é a tua palavra e luz para o meu caminho.\""
     ],
     oracao: "Deus, ilumina o meu entendimento. Fala comigo através da Tua Palavra. Guia os meus passos e dá clareza ao meu coração. Amém.",
-    followUp: "Quer que eu busque algo mais específico? Pode me perguntar qualquer coisa — estou aqui pra isso. 💙"
+    followUp: pick(WARMTH_PHRASES.closing)
   };
 }
