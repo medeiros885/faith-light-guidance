@@ -274,7 +274,7 @@ const Index = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
-            placeholder="Pergunte sobre a Bíblia..."
+            placeholder="Como posso te ajudar hoje?"
             className="flex-1 rounded-full input-field px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
           />
           <button
