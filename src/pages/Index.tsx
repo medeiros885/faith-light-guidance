@@ -37,6 +37,7 @@ const Index = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const handleSubmitRef = useRef<(q: string) => void>(() => {});
 
   // Speech Recognition setup
   useEffect(() => {
