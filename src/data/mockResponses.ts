@@ -81,6 +81,15 @@ export const helpTopics = [
   }
 ];
 
+/** Pick a random phrase from a category for variety */
+function pick(arr: string[]): string {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** Re-export personality for future AI integration */
+export { SYSTEM_PROMPT } from "./personality";
+export { WARMTH_PHRASES };
+
 export function generateMockResponse(question: string): BibleResponse {
   const q = question.toLowerCase();
 
