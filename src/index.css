@@ -6,83 +6,87 @@
 
 @layer base {
   :root {
-    /* Deep navy foundations */
-    --background: 209 52% 11%;
-    --foreground: 214 30% 93%;
+    /* Deep navy foundations — #0B1C2C / #102A43 */
+    --background: 209 55% 11%;
+    --foreground: 213 33% 93%;
 
-    --card: 209 42% 15%;
-    --card-foreground: 214 30% 93%;
+    --card: 210 42% 14%;
+    --card-foreground: 213 33% 93%;
 
-    --popover: 209 42% 15%;
-    --popover-foreground: 214 30% 93%;
+    --popover: 210 42% 14%;
+    --popover-foreground: 213 33% 93%;
 
-    /* Soft blue primary */
-    --primary: 214 68% 58%;
-    --primary-foreground: 209 52% 8%;
+    /* Soft blue primary — #4A90E2 */
+    --primary: 213 70% 59%;
+    --primary-foreground: 209 55% 8%;
 
-    --secondary: 209 35% 18%;
-    --secondary-foreground: 214 30% 88%;
+    --secondary: 210 38% 16%;
+    --secondary-foreground: 213 28% 85%;
 
-    --muted: 209 28% 20%;
-    --muted-foreground: 210 18% 52%;
+    --muted: 210 30% 19%;
+    --muted-foreground: 210 16% 50%;
 
-    --accent: 209 45% 24%;
-    --accent-foreground: 214 30% 93%;
+    --accent: 210 40% 22%;
+    --accent-foreground: 213 33% 93%;
 
-    --destructive: 0 60% 50%;
+    --destructive: 0 55% 48%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 209 25% 22%;
-    --input: 209 25% 22%;
+    --border: 210 22% 20%;
+    --input: 210 22% 20%;
     --ring: 43 55% 52%;
 
     --radius: 1rem;
 
     /* Semantic palette */
     --gold: 43 55% 52%;
-    --gold-light: 43 60% 62%;
-    --gold-muted: 43 40% 45%;
-    --navy-deep: 209 55% 8%;
-    --navy-mid: 209 42% 15%;
-    --navy-light: 209 35% 20%;
-    --blue-soft: 214 68% 58%;
-    --blue-calm: 214 55% 65%;
-    --blue-whisper: 214 45% 72%;
+    --gold-light: 43 58% 60%;
+    --gold-muted: 43 35% 42%;
+    --navy-deep: 209 58% 7%;
+    --navy-mid: 210 42% 14%;
+    --navy-light: 210 32% 18%;
+    --blue-soft: 213 70% 59%;
+    --blue-calm: 213 55% 68%;
+    --blue-whisper: 213 42% 75%;
+    --blue-glow: 213 80% 70%;
 
     /* Emotion colors */
-    --emotion-anxiety: 200 55% 58%;
-    --emotion-sadness: 215 30% 50%;
-    --emotion-fear: 220 50% 40%;
-    --emotion-temptation: 25 50% 52%;
+    --emotion-anxiety: 200 50% 55%;
+    --emotion-sadness: 215 28% 48%;
+    --emotion-fear: 222 45% 38%;
+    --emotion-temptation: 25 45% 50%;
 
     /* Path/journey accent */
-    --path-glow: 190 50% 55%;
+    --path-glow: 190 45% 52%;
 
     /* Gradients */
-    --gradient-help: linear-gradient(135deg, hsl(214 55% 42%), hsl(214 60% 56%));
-    --gradient-warmth: linear-gradient(180deg, hsl(209 52% 11%) 0%, hsl(209 45% 14%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(209 42% 16%) 0%, hsl(209 38% 13%) 100%);
-    --gradient-path: linear-gradient(180deg, hsl(190 50% 55% / 0.08) 0%, transparent 60%);
+    --gradient-help: linear-gradient(135deg, hsl(213 50% 40%), hsl(213 58% 52%));
+    --gradient-warmth: linear-gradient(180deg, hsl(209 55% 11%) 0%, hsl(210 48% 13%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(210 42% 15%) 0%, hsl(210 40% 12%) 100%);
+    --gradient-verse: linear-gradient(160deg, hsl(209 58% 9%) 0%, hsl(210 45% 13%) 100%);
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(43 55% 52% / 0.1), hsl(43 45% 42% / 0.04));
 
-    /* Shadows & Glows — softer */
-    --shadow-soft: 0 4px 20px hsl(209 55% 5% / 0.3);
-    --shadow-gold: 0 0 20px hsl(43 55% 52% / 0.07);
-    --shadow-blue: 0 0 24px hsl(214 68% 58% / 0.1);
-    --glow-gold: 0 0 28px hsl(43 55% 52% / 0.08);
-    --glow-blue: 0 0 28px hsl(214 55% 58% / 0.1);
+    /* Shadows & Glows — very soft */
+    --shadow-soft: 0 2px 16px hsl(209 55% 5% / 0.25);
+    --shadow-card: 0 4px 24px hsl(209 55% 5% / 0.2), 0 1px 4px hsl(209 55% 5% / 0.1);
+    --shadow-gold: 0 0 16px hsl(43 55% 52% / 0.06);
+    --shadow-blue: 0 0 20px hsl(213 70% 59% / 0.08);
+    --glow-gold: 0 0 24px hsl(43 55% 52% / 0.06);
+    --glow-blue: 0 0 24px hsl(213 55% 60% / 0.08);
+    --glow-verse: 0 0 32px hsl(213 70% 59% / 0.06);
 
     /* Typography */
     --font-display: 'Playfair Display', serif;
     --font-body: 'Inter', sans-serif;
 
-    /* Sidebar (keeping consistent) */
-    --sidebar-background: 209 52% 11%;
-    --sidebar-foreground: 214 30% 93%;
+    /* Sidebar */
+    --sidebar-background: 209 55% 11%;
+    --sidebar-foreground: 213 33% 93%;
     --sidebar-primary: 43 55% 52%;
-    --sidebar-primary-foreground: 209 52% 8%;
-    --sidebar-accent: 209 45% 24%;
-    --sidebar-accent-foreground: 214 30% 93%;
-    --sidebar-border: 209 25% 22%;
+    --sidebar-primary-foreground: 209 55% 8%;
+    --sidebar-accent: 210 40% 22%;
+    --sidebar-accent-foreground: 213 33% 93%;
+    --sidebar-border: 210 22% 20%;
     --sidebar-ring: 43 55% 52%;
   }
 }
@@ -101,6 +105,7 @@
     background: var(--gradient-warmth);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: 0.01em;
   }
 }
 
@@ -121,6 +126,10 @@
     color: hsl(var(--gold-light));
   }
 
+  .text-blue-calm {
+    color: hsl(var(--blue-calm));
+  }
+
   .bg-navy-deep {
     background-color: hsl(var(--navy-deep));
   }
@@ -139,62 +148,90 @@
 
   .glass-card {
     background: var(--gradient-card);
-    backdrop-filter: blur(16px);
-    border: 1px solid hsl(var(--border) / 0.4);
-    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border) / 0.35);
+    box-shadow: var(--shadow-card);
+  }
+
+  .verse-card {
+    background: var(--gradient-verse);
+    border: 1px solid hsl(var(--border) / 0.25);
+    box-shadow: var(--glow-verse);
   }
 
   .user-bubble {
-    background: linear-gradient(135deg, hsl(var(--gold) / 0.15), hsl(var(--gold) / 0.08));
-    border: 1px solid hsl(var(--gold) / 0.12);
+    background: linear-gradient(135deg, hsl(var(--blue-soft) / 0.15), hsl(var(--blue-soft) / 0.08));
+    border: 1px solid hsl(var(--blue-soft) / 0.12);
+  }
+
+  .assistant-bubble {
+    background: var(--gradient-card);
+    border: 1px solid hsl(var(--border) / 0.3);
+    box-shadow: var(--shadow-soft);
   }
 
   .input-field {
     background: hsl(var(--navy-light));
-    border: 1px solid hsl(var(--border) / 0.4);
+    border: 1px solid hsl(var(--border) / 0.35);
     transition: border-color 0.4s ease, box-shadow 0.4s ease, background 0.4s ease;
   }
 
   .input-field:focus {
-    border-color: hsl(var(--blue-calm) / 0.35);
-    box-shadow: 0 0 0 3px hsl(var(--blue-calm) / 0.06), 0 0 16px hsl(var(--blue-calm) / 0.05);
-    background: hsl(var(--navy-light) / 0.9);
+    border-color: hsl(var(--blue-calm) / 0.3);
+    box-shadow: 0 0 0 3px hsl(var(--blue-calm) / 0.05), 0 0 20px hsl(var(--blue-calm) / 0.04);
+    background: hsl(var(--navy-light) / 0.85);
+  }
+
+  .gold-highlight-btn {
+    background: var(--gradient-gold-subtle);
+    border: 1px solid hsl(var(--gold) / 0.18);
+    box-shadow: 0 0 20px hsl(var(--gold) / 0.05);
+    transition: all 0.3s ease;
+  }
+
+  .gold-highlight-btn:hover {
+    border-color: hsl(var(--gold) / 0.28);
+    box-shadow: 0 0 28px hsl(var(--gold) / 0.08);
+  }
+
+  .gold-highlight-btn:active {
+    box-shadow: 0 0 12px hsl(var(--gold) / 0.04);
   }
 
   /* Emotion card variants */
   .emotion-card-anxiety {
-    border-color: hsl(var(--emotion-anxiety) / 0.2);
-    background: linear-gradient(145deg, hsl(var(--emotion-anxiety) / 0.08), hsl(var(--navy-mid) / 0.6));
+    border-color: hsl(var(--emotion-anxiety) / 0.18);
+    background: linear-gradient(145deg, hsl(var(--emotion-anxiety) / 0.07), hsl(var(--navy-mid) / 0.5));
   }
   .emotion-card-anxiety:hover {
-    border-color: hsl(var(--emotion-anxiety) / 0.35);
-    box-shadow: 0 0 20px hsl(var(--emotion-anxiety) / 0.1);
+    border-color: hsl(var(--emotion-anxiety) / 0.3);
+    box-shadow: 0 0 16px hsl(var(--emotion-anxiety) / 0.08);
   }
 
   .emotion-card-sadness {
-    border-color: hsl(var(--emotion-sadness) / 0.2);
-    background: linear-gradient(145deg, hsl(var(--emotion-sadness) / 0.08), hsl(var(--navy-mid) / 0.6));
+    border-color: hsl(var(--emotion-sadness) / 0.18);
+    background: linear-gradient(145deg, hsl(var(--emotion-sadness) / 0.07), hsl(var(--navy-mid) / 0.5));
   }
   .emotion-card-sadness:hover {
-    border-color: hsl(var(--emotion-sadness) / 0.35);
-    box-shadow: 0 0 20px hsl(var(--emotion-sadness) / 0.1);
+    border-color: hsl(var(--emotion-sadness) / 0.3);
+    box-shadow: 0 0 16px hsl(var(--emotion-sadness) / 0.08);
   }
 
   .emotion-card-fear {
-    border-color: hsl(var(--emotion-fear) / 0.2);
-    background: linear-gradient(145deg, hsl(var(--emotion-fear) / 0.08), hsl(var(--navy-mid) / 0.6));
+    border-color: hsl(var(--emotion-fear) / 0.18);
+    background: linear-gradient(145deg, hsl(var(--emotion-fear) / 0.07), hsl(var(--navy-mid) / 0.5));
   }
   .emotion-card-fear:hover {
-    border-color: hsl(var(--emotion-fear) / 0.35);
-    box-shadow: 0 0 20px hsl(var(--emotion-fear) / 0.1);
+    border-color: hsl(var(--emotion-fear) / 0.3);
+    box-shadow: 0 0 16px hsl(var(--emotion-fear) / 0.08);
   }
 
   .emotion-card-temptation {
-    border-color: hsl(var(--emotion-temptation) / 0.2);
-    background: linear-gradient(145deg, hsl(var(--emotion-temptation) / 0.08), hsl(var(--navy-mid) / 0.6));
+    border-color: hsl(var(--emotion-temptation) / 0.18);
+    background: linear-gradient(145deg, hsl(var(--emotion-temptation) / 0.07), hsl(var(--navy-mid) / 0.5));
   }
   .emotion-card-temptation:hover {
-    border-color: hsl(var(--emotion-temptation) / 0.35);
-    box-shadow: 0 0 20px hsl(var(--emotion-temptation) / 0.1);
+    border-color: hsl(var(--emotion-temptation) / 0.3);
+    box-shadow: 0 0 16px hsl(var(--emotion-temptation) / 0.08);
   }
 }
