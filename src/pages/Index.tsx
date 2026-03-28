@@ -22,7 +22,7 @@ const suggestions = [
 ];
 
 const loadingHeaderPhrases = [
-  "Preparando uma resposta com carinho...",
+  "Preparando uma resposta pra você...",
   "Buscando direção na Palavra...",
   "Meditando nas Escrituras...",
 ];
@@ -249,12 +249,12 @@ const Index = () => {
                 </motion.h1>
 
                 <motion.p
-                  className="mt-2.5 max-w-[280px] text-center text-sm leading-relaxed text-muted-foreground"
+                  className="mt-2.5 max-w-[300px] text-center text-sm leading-relaxed text-muted-foreground"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.25, duration: 0.4 }}
                 >
-                  Direção para a sua vida, todos os dias.
+                  Converse, desabafe e receba direção com base na Palavra.
                 </motion.p>
 
                 <div className="mt-9 w-full space-y-2.5">
@@ -270,9 +270,10 @@ const Index = () => {
                 </div>
 
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.01 }}
                   onClick={() => setScreen("help")}
-                  className="w-full rounded-2xl gradient-help px-6 py-4 text-base font-semibold text-foreground/95 shadow-lg glow-blue transition-all duration-300"
+                  className="w-full rounded-2xl gradient-help px-6 py-4.5 text-base font-semibold text-foreground/95 shadow-md transition-all duration-300"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6, duration: 0.4 }}
@@ -281,12 +282,12 @@ const Index = () => {
                 </motion.button>
 
                 <motion.p
-                  className="mt-4 text-[11px] text-muted-foreground/60"
+                  className="mt-5 text-[11px] text-muted-foreground/50 italic"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.75 }}
                 >
-                  Se preferir, pode falar comigo 💙
+                  Você não precisa caminhar sozinho. 💙
                 </motion.p>
               </motion.div>
             )}
@@ -341,7 +342,7 @@ const Index = () => {
       </div>
 
       {/* Input bar */}
-      <div className="sticky bottom-0 border-t border-border/25 bg-background/90 px-4 pb-3 pt-2 backdrop-blur-xl">
+      <div className="sticky bottom-0 border-t border-border/20 bg-background/92 px-4 pb-4 pt-2.5 backdrop-blur-xl">
         {/* Voice status message */}
         <AnimatePresence>
           {(isListening || voiceStatus === "processing") && (
@@ -359,15 +360,16 @@ const Index = () => {
           )}
         </AnimatePresence>
 
-        <div className="mx-auto flex max-w-lg items-center gap-2">
+        <div className="mx-auto flex max-w-lg items-center gap-2.5">
           <motion.button
             onClick={toggleListening}
-            animate={isListening ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-            transition={isListening ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" } : {}}
-            className={`flex-shrink-0 rounded-full p-2.5 transition-all duration-300 ${
+            animate={isListening ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+            transition={isListening ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : {}}
+            whileTap={{ scale: 0.9 }}
+            className={`flex-shrink-0 rounded-full p-3 transition-all duration-300 ${
               isListening
-                ? "bg-blue-soft/15 text-blue-calm shadow-[0_0_20px_hsl(214_55%_65%/0.25)]"
-                : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-secondary/50"
+                ? "bg-blue-soft/12 text-blue-calm shadow-[0_0_16px_hsl(214_55%_65%/0.2)]"
+                : "text-muted-foreground/50 hover:text-foreground/70 hover:bg-secondary/40"
             }`}
           >
             {isListening ? <MicOff size={20} /> : <Mic size={20} />}
@@ -378,16 +380,17 @@ const Index = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
             placeholder={isListening ? "Ouvindo..." : "Como posso te ajudar hoje?"}
-            className="flex-1 rounded-full input-field px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+            className="flex-1 rounded-full input-field px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
             readOnly={isListening}
           />
-          <button
+          <motion.button
             onClick={() => handleSubmit(input)}
             disabled={!input.trim() || isLoading}
-            className="flex-shrink-0 rounded-full bg-gold p-2.5 text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-20"
+            whileTap={{ scale: 0.88 }}
+            className="flex-shrink-0 rounded-full bg-gold p-3 text-primary-foreground shadow-sm transition-all duration-200 hover:bg-gold-light disabled:opacity-15"
           >
             <Send size={18} />
-          </button>
+          </motion.button>
         </div>
       </div>
     </div>
