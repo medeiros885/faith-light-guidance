@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Search, Heart, Copy, Share2, Sparkles } from "lucide-react";
+import { Search, Heart, Copy, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { useFavoriteVerses } from "@/hooks/useFavoriteVerses";
 
@@ -14,11 +14,12 @@ interface SearchResult {
 interface BibleSearchResultsProps {
   query: string;
   results: SearchResult[];
+  isSearching: boolean;
   favoriteHook: ReturnType<typeof useFavoriteVerses>;
   onReflect: (verse: string) => void;
 }
 
-const BibleSearchResults = ({ query, results, favoriteHook, onReflect }: BibleSearchResultsProps) => {
+const BibleSearchResults = ({ query, results, isSearching, favoriteHook, onReflect }: BibleSearchResultsProps) => {
   const { isFavorite, toggleFavorite } = favoriteHook;
 
   if (query.length < 2) {
@@ -28,6 +29,15 @@ const BibleSearchResults = ({ query, results, favoriteHook, onReflect }: BibleSe
         <p className="text-sm text-muted-foreground/50">
           Digite pelo menos 2 letras para buscar
         </p>
+      </div>
+    );
+  }
+
+  if (isSearching) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Loader2 size={24} className="animate-spin text-gold/50 mb-3" />
+        <p className="text-sm text-muted-foreground/50">Buscando na Palavra...</p>
       </div>
     );
   }
