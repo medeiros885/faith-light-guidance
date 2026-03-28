@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Send, ArrowLeft } from "lucide-react";
+import { Mic, MicOff, Send, ArrowLeft, BookOpen } from "lucide-react";
 import bibleLogo from "@/assets/bible-logo.png";
 import SuggestionCard from "@/components/SuggestionCard";
 import ResponseView from "@/components/ResponseView";
 import HelpTopics from "@/components/HelpTopics";
 import TypingIndicator from "@/components/TypingIndicator";
+import BibleReader from "@/components/bible/BibleReader";
 import { generateMockResponse, type BibleResponse } from "@/data/mockResponses";
 
-type Screen = "home" | "help" | "chat";
+type Screen = "home" | "help" | "chat" | "bible";
 
 interface ChatEntry {
   question: string;
