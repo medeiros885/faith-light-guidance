@@ -187,7 +187,7 @@ const Index = () => {
             </button>
             <img src={bibleLogo} alt="" className="h-7 w-7 opacity-90" />
             <div className="flex flex-col">
-              <span className="font-display text-sm font-semibold text-gold">Luz na Palavra</span>
+              <span className="font-display text-sm font-semibold text-gold">Caminho Vivo</span>
               <AnimatePresence mode="wait">
                 {isLoading ? (
                   <motion.span
@@ -230,7 +230,7 @@ const Index = () => {
               >
                 <motion.img
                   src={bibleLogo}
-                  alt="Luz na Palavra"
+                  alt="Caminho Vivo"
                   width={72}
                   height={72}
                   className="mb-5 drop-shadow-[0_0_24px_hsl(43_55%_52%/0.2)]"
@@ -245,7 +245,7 @@ const Index = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15, duration: 0.4 }}
                 >
-                  Luz na Palavra
+                  Caminho Vivo
                 </motion.h1>
 
                 <motion.p
@@ -254,7 +254,7 @@ const Index = () => {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.25, duration: 0.4 }}
                 >
-                  Faça uma pergunta e receba uma resposta baseada na Bíblia
+                  Direção para a sua vida, todos os dias.
                 </motion.p>
 
                 <div className="mt-9 w-full space-y-2.5">
