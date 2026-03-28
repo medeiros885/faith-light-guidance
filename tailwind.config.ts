@@ -21,13 +21,16 @@ export default {
         gold: {
           DEFAULT: "hsl(var(--gold))",
           light: "hsl(var(--gold-light))",
+          muted: "hsl(var(--gold-muted))",
         },
         navy: {
           deep: "hsl(var(--navy-deep))",
           mid: "hsl(var(--navy-mid))",
+          light: "hsl(var(--navy-light))",
         },
         "blue-soft": "hsl(var(--blue-soft))",
-        "blue-glow": "hsl(var(--blue-glow))",
+        "blue-calm": "hsl(var(--blue-calm))",
+        "blue-whisper": "hsl(var(--blue-whisper))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

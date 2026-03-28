@@ -8,12 +8,19 @@ interface HelpTopicsProps {
   onBack: () => void;
 }
 
+const emotionStyles: Record<string, string> = {
+  ansiedade: "emotion-card-anxiety",
+  tristeza: "emotion-card-sadness",
+  medo: "emotion-card-fear",
+  tentacao: "emotion-card-temptation",
+};
+
 const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
+      className="space-y-5"
     >
       <button
         onClick={onBack}
@@ -23,12 +30,14 @@ const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
         Voltar
       </button>
 
-      <div className="text-center space-y-2 py-2">
+      <div className="text-center space-y-2 py-3">
         <h2 className="font-display text-xl font-semibold text-foreground">
           Como você está se sentindo?
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Escolha o que mais se aproxima do que você está vivendo
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Escolha o que mais se aproxima do que você está vivendo.
+          <br />
+          <span className="text-[11px] italic text-muted-foreground/70">Você está em um lugar seguro.</span>
         </p>
       </div>
 
@@ -36,15 +45,15 @@ const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
         {helpTopics.map((topic, i) => (
           <motion.button
             key={topic.id}
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 + i * 0.08 }}
-            whileTap={{ scale: 0.95 }}
+            transition={{ delay: 0.1 + i * 0.1, duration: 0.4 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => onSelect(topic.label, topic.response)}
-            className="glass-card flex flex-col items-center gap-2 rounded-2xl p-5 transition-all hover:border-gold/30 hover:glow-gold"
+            className={`flex flex-col items-center gap-3 rounded-2xl p-6 border transition-all duration-300 ${emotionStyles[topic.id] || "glass-card"}`}
           >
             <span className="text-3xl">{topic.emoji}</span>
-            <span className="text-sm font-medium text-foreground">{topic.label}</span>
+            <span className="text-sm font-medium text-foreground/90">{topic.label}</span>
           </motion.button>
         ))}
       </div>

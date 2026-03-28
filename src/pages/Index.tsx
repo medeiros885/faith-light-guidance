@@ -21,6 +21,12 @@ const suggestions = [
   "Qual o significado da fé?",
 ];
 
+const loadingHeaderPhrases = [
+  "Buscando na Palavra...",
+  "Meditando...",
+  "Preparando resposta...",
+];
+
 const Index = () => {
   const [screen, setScreen] = useState<Screen>("home");
   const [input, setInput] = useState("");
@@ -41,7 +47,6 @@ const Index = () => {
     scrollToBottom();
   }, [chatHistory, isLoading, scrollToBottom]);
 
-  // Focus input when entering chat
   useEffect(() => {
     if (screen === "chat" && inputRef.current) {
       inputRef.current.focus();
@@ -60,8 +65,7 @@ const Index = () => {
     setScreen("chat");
     setInput("");
 
-    // Simulate typing delay (800-1500ms)
-    const delay = 800 + Math.random() * 700;
+    const delay = 1200 + Math.random() * 800;
     setTimeout(() => {
       const response = generateMockResponse(question);
       setChatHistory((prev) =>
@@ -89,7 +93,7 @@ const Index = () => {
     setTimeout(() => {
       setChatHistory([{ question, response }]);
       setIsLoading(false);
-    }, 1000);
+    }, 1400);
   };
 
   const handleBack = () => {
@@ -97,6 +101,8 @@ const Index = () => {
     setChatHistory([]);
     setIsLoading(false);
   };
+
+  const headerPhrase = loadingHeaderPhrases[Math.floor(Math.random() * loadingHeaderPhrases.length)];
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
@@ -107,23 +113,23 @@ const Index = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/50 bg-background/80 px-4 py-3 backdrop-blur-lg"
+            className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/30 bg-background/85 px-4 py-3 backdrop-blur-xl"
           >
-            <button onClick={handleBack} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={handleBack} className="text-muted-foreground hover:text-foreground transition-colors duration-200">
               <ArrowLeft size={20} />
             </button>
-            <img src={bibleLogo} alt="" className="h-7 w-7" />
+            <img src={bibleLogo} alt="" className="h-7 w-7 opacity-90" />
             <div className="flex flex-col">
               <span className="font-display text-sm font-semibold text-gold">Luz na Palavra</span>
               <AnimatePresence>
                 {isLoading && (
                   <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: -2 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="text-[10px] text-muted-foreground"
+                    className="text-[10px] italic text-muted-foreground"
                   >
-                    escrevendo...
+                    {headerPhrase}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -134,73 +140,74 @@ const Index = () => {
 
       {/* Main content */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-lg px-4">
+        <div className="mx-auto max-w-lg px-5">
           <AnimatePresence mode="wait">
             {screen === "home" && (
               <motion.div
                 key="home"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="flex min-h-[calc(100dvh-80px)] flex-col items-center justify-center py-8"
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.35 }}
+                className="flex min-h-[calc(100dvh-80px)] flex-col items-center justify-center py-10"
               >
                 <motion.img
                   src={bibleLogo}
                   alt="Luz na Palavra"
-                  width={80}
-                  height={80}
-                  className="mb-4 drop-shadow-[0_0_20px_hsl(43_65%_52%/0.3)]"
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  width={72}
+                  height={72}
+                  className="mb-5 drop-shadow-[0_0_24px_hsl(43_55%_52%/0.2)]"
+                  initial={{ opacity: 0, scale: 0.85 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
                 />
 
                 <motion.h1
                   className="font-display text-3xl font-bold text-gold"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
+                  transition={{ delay: 0.15, duration: 0.4 }}
                 >
                   Luz na Palavra
                 </motion.h1>
 
                 <motion.p
-                  className="mt-2 max-w-xs text-center text-sm text-muted-foreground"
+                  className="mt-2.5 max-w-[280px] text-center text-sm leading-relaxed text-muted-foreground"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.25 }}
+                  transition={{ delay: 0.25, duration: 0.4 }}
                 >
                   Faça uma pergunta e receba uma resposta baseada na Bíblia
                 </motion.p>
 
-                <div className="mt-8 w-full space-y-2">
+                <div className="mt-9 w-full space-y-2.5">
                   {suggestions.map((s, i) => (
                     <SuggestionCard key={s} text={s} index={i} onClick={handleSubmit} />
                   ))}
                 </div>
 
-                <div className="my-6 flex w-full items-center gap-3">
-                  <div className="h-px flex-1 bg-border/50" />
-                  <span className="text-xs text-muted-foreground">ou</span>
-                  <div className="h-px flex-1 bg-border/50" />
+                <div className="my-7 flex w-full items-center gap-4">
+                  <div className="h-px flex-1 bg-border/30" />
+                  <span className="text-xs text-muted-foreground/60">ou</span>
+                  <div className="h-px flex-1 bg-border/30" />
                 </div>
 
                 <motion.button
-                  whileTap={{ scale: 0.96 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => setScreen("help")}
-                  className="w-full rounded-2xl gradient-help px-6 py-4 text-base font-semibold text-foreground shadow-lg glow-blue animate-glow-pulse transition-all"
+                  className="w-full rounded-2xl gradient-help px-6 py-4 text-base font-semibold text-foreground/95 shadow-lg glow-blue transition-all duration-300"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
                 >
                   💙 Preciso de ajuda hoje
                 </motion.button>
 
                 <motion.p
-                  className="mt-3 text-xs text-muted-foreground"
+                  className="mt-4 text-[11px] text-muted-foreground/60"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
+                  transition={{ delay: 0.75 }}
                 >
                   Você também pode usar o microfone para falar
                 </motion.p>
@@ -210,9 +217,10 @@ const Index = () => {
             {screen === "help" && (
               <motion.div
                 key="help"
-                initial={{ opacity: 0, x: 30 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.35 }}
                 className="py-8"
               >
                 <HelpTopics onSelect={handleHelpSelect} onBack={handleBack} />
@@ -224,19 +232,20 @@ const Index = () => {
                 key="chat"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="py-4 space-y-2"
+                transition={{ duration: 0.3 }}
+                className="py-4 space-y-3"
               >
                 {chatHistory.map((entry, i) => (
                   <div key={i}>
                     {entry.response ? (
                       <ResponseView question={entry.question} response={entry.response} />
                     ) : (
-                      /* Show only the user bubble while loading */
                       <div className="flex justify-end mb-2">
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                          initial={{ opacity: 0, scale: 0.92, y: 8 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
-                          className="max-w-[80%] rounded-2xl rounded-tr-sm bg-gold/20 px-4 py-3 text-sm text-foreground"
+                          transition={{ ease: "easeOut" }}
+                          className="max-w-[80%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm text-foreground/90 leading-relaxed"
                         >
                           {entry.question}
                         </motion.div>
@@ -255,9 +264,9 @@ const Index = () => {
       </div>
 
       {/* Input bar */}
-      <div className="sticky bottom-0 border-t border-border/50 bg-background/90 px-4 py-3 backdrop-blur-lg">
+      <div className="sticky bottom-0 border-t border-border/25 bg-background/90 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-lg items-center gap-2">
-          <button className="flex-shrink-0 rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary">
+          <button className="flex-shrink-0 rounded-full p-2 text-muted-foreground/60 transition-colors duration-200 hover:text-foreground/80 hover:bg-secondary/50">
             <Mic size={20} />
           </button>
           <input
@@ -266,12 +275,12 @@ const Index = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
             placeholder="Pergunte sobre a Bíblia..."
-            className="flex-1 rounded-full border border-border bg-secondary px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-gold/50"
+            className="flex-1 rounded-full input-field px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
           />
           <button
             onClick={() => handleSubmit(input)}
             disabled={!input.trim() || isLoading}
-            className="flex-shrink-0 rounded-full bg-gold p-2.5 text-primary-foreground transition-all hover:bg-gold-light disabled:opacity-30"
+            className="flex-shrink-0 rounded-full bg-gold p-2.5 text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-20"
           >
             <Send size={18} />
           </button>

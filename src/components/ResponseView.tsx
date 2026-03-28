@@ -18,29 +18,33 @@ const ResponseView = ({ response, question }: ResponseViewProps) => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-4 pb-4"
+      className="space-y-3 pb-4"
     >
       {/* User question bubble */}
       <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-gold/20 px-4 py-3 text-sm text-foreground">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="max-w-[80%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm text-foreground/90 leading-relaxed"
+        >
           {question}
-        </div>
+        </motion.div>
       </div>
 
       {/* Sections */}
       {sections.map(({ key, icon: Icon, title }, i) => (
         <motion.div
           key={key}
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 + i * 0.15 }}
-          className="glass-card rounded-2xl p-4"
+          transition={{ delay: 0.15 + i * 0.12, ease: "easeOut" }}
+          className="glass-card rounded-2xl rounded-tl-sm p-4"
         >
-          <div className="mb-2 flex items-center gap-2 text-gold">
-            <Icon size={16} />
-            <span className="text-xs font-semibold uppercase tracking-wider">{title}</span>
+          <div className="mb-2 flex items-center gap-2 text-gold-light">
+            <Icon size={15} strokeWidth={1.8} />
+            <span className="text-[11px] font-semibold uppercase tracking-widest">{title}</span>
           </div>
-          <p className="text-sm leading-relaxed text-foreground/85">
+          <p className="text-sm leading-relaxed text-foreground/80">
             {response[key]}
           </p>
         </motion.div>
@@ -48,18 +52,18 @@ const ResponseView = ({ response, question }: ResponseViewProps) => {
 
       {/* Versículos */}
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.65 }}
-        className="glass-card rounded-2xl p-4"
+        transition={{ delay: 0.55, ease: "easeOut" }}
+        className="glass-card rounded-2xl rounded-tl-sm p-4"
       >
-        <div className="mb-2 flex items-center gap-2 text-gold">
-          <BookMarked size={16} />
-          <span className="text-xs font-semibold uppercase tracking-wider">Versículos Relacionados</span>
+        <div className="mb-3 flex items-center gap-2 text-gold-light">
+          <BookMarked size={15} strokeWidth={1.8} />
+          <span className="text-[11px] font-semibold uppercase tracking-widest">Versículos Relacionados</span>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {response.versiculos.map((v, i) => (
-            <p key={i} className="text-sm leading-relaxed text-foreground/85 border-l-2 border-gold/30 pl-3">
+            <p key={i} className="text-sm leading-relaxed text-foreground/80 border-l-2 border-gold/20 pl-3">
               {v}
             </p>
           ))}
@@ -68,16 +72,16 @@ const ResponseView = ({ response, question }: ResponseViewProps) => {
 
       {/* Oração */}
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="glass-card rounded-2xl p-4 border-gold/20"
+        transition={{ delay: 0.7, ease: "easeOut" }}
+        className="glass-card rounded-2xl rounded-tl-sm p-4 border-gold/15"
       >
-        <div className="mb-2 flex items-center gap-2 text-gold">
-          <HandHelping size={16} />
-          <span className="text-xs font-semibold uppercase tracking-wider">Oração</span>
+        <div className="mb-2 flex items-center gap-2 text-gold-light">
+          <HandHelping size={15} strokeWidth={1.8} />
+          <span className="text-[11px] font-semibold uppercase tracking-widest">Oração</span>
         </div>
-        <p className="text-sm italic leading-relaxed text-foreground/80">
+        <p className="text-sm italic leading-relaxed text-foreground/75">
           {response.oracao}
         </p>
       </motion.div>
