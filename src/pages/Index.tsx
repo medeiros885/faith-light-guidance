@@ -22,9 +22,9 @@ const suggestions = [
 ];
 
 const loadingHeaderPhrases = [
-  "Buscando na Palavra...",
-  "Meditando...",
-  "Preparando resposta...",
+  "Preparando uma resposta com carinho...",
+  "Buscando direção na Palavra...",
+  "Meditando nas Escrituras...",
 ];
 
 const Index = () => {
@@ -34,6 +34,9 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<"idle" | "listening" | "processing">("idle");
+  const [headerPhrase] = useState(
+    () => loadingHeaderPhrases[Math.floor(Math.random() * loadingHeaderPhrases.length)]
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -51,11 +54,10 @@ const Index = () => {
 
     recognition.onresult = (event: any) => {
       const transcript = Array.from(event.results)
-        .map((result) => result[0].transcript)
+        .map((result: any) => result[0].transcript)
         .join("");
       setInput(transcript);
 
-      // Auto-submit on final result
       if (event.results[event.results.length - 1].isFinal) {
         const finalText = Array.from(event.results)
           .map((result: any) => result[0].transcript)
@@ -71,7 +73,10 @@ const Index = () => {
       }
     };
 
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = () => {
+      setIsListening(false);
+      setVoiceStatus("idle");
+    };
     recognition.onend = () => setIsListening(false);
 
     recognitionRef.current = recognition;
@@ -86,8 +91,10 @@ const Index = () => {
     if (isListening) {
       recognitionRef.current.stop();
       setIsListening(false);
+      setVoiceStatus("idle");
     } else {
       setInput("");
+      setVoiceStatus("listening");
       recognitionRef.current.start();
       setIsListening(true);
     }
@@ -98,7 +105,7 @@ const Index = () => {
       if (scrollRef.current) {
         scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
       }
-    }, 100);
+    }, 120);
   }, []);
 
   useEffect(() => {
@@ -123,7 +130,8 @@ const Index = () => {
     setScreen("chat");
     setInput("");
 
-    const delay = 1200 + Math.random() * 800;
+    // Slightly longer delay for realism
+    const delay = 1500 + Math.random() * 1000;
     setTimeout(() => {
       const response = generateMockResponse(question);
       setChatHistory((prev) =>
@@ -153,16 +161,15 @@ const Index = () => {
     setTimeout(() => {
       setChatHistory([{ question, response }]);
       setIsLoading(false);
-    }, 1400);
+    }, 1800);
   };
 
   const handleBack = () => {
     setScreen("home");
     setChatHistory([]);
     setIsLoading(false);
+    setVoiceStatus("idle");
   };
-
-  const headerPhrase = loadingHeaderPhrases[Math.floor(Math.random() * loadingHeaderPhrases.length)];
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
@@ -181,15 +188,25 @@ const Index = () => {
             <img src={bibleLogo} alt="" className="h-7 w-7 opacity-90" />
             <div className="flex flex-col">
               <span className="font-display text-sm font-semibold text-gold">Luz na Palavra</span>
-              <AnimatePresence>
-                {isLoading && (
+              <AnimatePresence mode="wait">
+                {isLoading ? (
                   <motion.span
+                    key="loading"
                     initial={{ opacity: 0, y: -2 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="text-[10px] italic text-muted-foreground"
+                    className="text-[10px] italic text-blue-calm/70"
                   >
                     {headerPhrase}
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="online"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-[10px] text-muted-foreground/50"
+                  >
+                    online
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -293,7 +310,7 @@ const Index = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                className="py-4 space-y-3"
+                className="py-4 space-y-1"
               >
                 {chatHistory.map((entry, i) => (
                   <div key={i}>
@@ -305,7 +322,7 @@ const Index = () => {
                           initial={{ opacity: 0, scale: 0.92, y: 8 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           transition={{ ease: "easeOut" }}
-                          className="max-w-[80%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm text-foreground/90 leading-relaxed"
+                          className="max-w-[82%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm text-foreground/90 leading-relaxed"
                         >
                           {entry.question}
                         </motion.div>
@@ -332,10 +349,11 @@ const Index = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.3 }}
               className="mx-auto mb-2 max-w-lg text-center"
             >
-              <span className="text-xs italic text-blue-calm">
-                {isListening ? "Estou te ouvindo..." : "Entendi... deixa eu te responder 💙"}
+              <span className="text-xs italic text-blue-calm/80">
+                {isListening ? "Pode falar, estou aqui 💙" : "Entendi... deixa eu te responder 💙"}
               </span>
             </motion.div>
           )}
@@ -344,11 +362,11 @@ const Index = () => {
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <motion.button
             onClick={toggleListening}
-            animate={isListening ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-            transition={isListening ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : {}}
+            animate={isListening ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+            transition={isListening ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" } : {}}
             className={`flex-shrink-0 rounded-full p-2.5 transition-all duration-300 ${
               isListening
-                ? "bg-blue-soft/20 text-blue-calm shadow-[0_0_16px_hsl(214_55%_65%/0.3)]"
+                ? "bg-blue-soft/15 text-blue-calm shadow-[0_0_20px_hsl(214_55%_65%/0.25)]"
                 : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-secondary/50"
             }`}
           >
