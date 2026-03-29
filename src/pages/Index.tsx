@@ -8,6 +8,11 @@ import HelpTopics from "@/components/HelpTopics";
 import TypingIndicator from "@/components/TypingIndicator";
 import DailyVerseCard from "@/components/DailyVerseCard";
 import BibleReader from "@/components/bible/BibleReader";
+import QuickActions from "@/components/QuickActions";
+import FollowUpButtons from "@/components/FollowUpButtons";
+import StreakBadge from "@/components/StreakBadge";
+import DailyMessage from "@/components/DailyMessage";
+import { useDailyStreak } from "@/hooks/useDailyStreak";
 import { generateMockResponse, type BibleResponse } from "@/data/mockResponses";
 
 type Screen = "home" | "help" | "chat" | "bible";
@@ -43,6 +48,11 @@ const Index = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const handleSubmitRef = useRef<(q: string) => void>(() => {});
+  const { streakCount, recordInteraction } = useDailyStreak();
+
+  useEffect(() => {
+    recordInteraction();
+  }, [recordInteraction]);
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -102,6 +112,7 @@ const Index = () => {
 
   const simulateResponse = useCallback((question: string, append = true) => {
     setIsLoading(true);
+    recordInteraction();
     if (append) {
       setChatHistory((prev) => [...prev, { question, response: null }]);
     } else {
@@ -119,7 +130,7 @@ const Index = () => {
       );
       setIsLoading(false);
     }, delay);
-  }, []);
+  }, [recordInteraction]);
 
   const handleSubmit = (question: string) => {
     if (!question.trim() || isLoading) return;
@@ -146,6 +157,7 @@ const Index = () => {
   };
 
   const handleReflect = (verseText: string) => {
+    recordInteraction();
     simulateResponse(verseText, false);
   };
 
@@ -160,6 +172,8 @@ const Index = () => {
     return "Boa noite 🌙";
   };
 
+  const showFollowUp = screen === "chat" && !isLoading && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].response !== null;
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
       {/* Chat header */}
@@ -171,9 +185,13 @@ const Index = () => {
             exit={{ opacity: 0, y: -16 }}
             className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/20 bg-background/90 px-5 py-3.5 backdrop-blur-2xl"
           >
-            <button onClick={handleBack} className="rounded-full p-1.5 text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary/40">
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={handleBack}
+              className="rounded-full p-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground hover:bg-secondary/40"
+            >
               <ArrowLeft size={18} />
-            </button>
+            </motion.button>
             <img src={bibleLogo} alt="" className="h-7 w-7 opacity-85" />
             <div className="flex flex-col">
               <span className="font-display text-sm font-semibold text-gold">Caminho Vivo</span>
@@ -194,7 +212,7 @@ const Index = () => {
       </AnimatePresence>
 
       {/* Content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth">
         <div className="mx-auto max-w-lg px-5">
           <AnimatePresence mode="wait">
             {/* ── HOME ── */}
@@ -205,7 +223,7 @@ const Index = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.4 }}
-                className="flex flex-col items-center pb-10 pt-12 gap-7"
+                className="flex flex-col items-center pb-10 pt-10 gap-6"
               >
                 {/* Logo */}
                 <motion.div
@@ -217,12 +235,15 @@ const Index = () => {
                   <img
                     src={bibleLogo}
                     alt="Caminho Vivo"
-                    width={52}
-                    height={52}
+                    width={48}
+                    height={48}
                     className="drop-shadow-[0_0_18px_hsl(43_55%_52%/0.12)]"
                   />
                   <h1 className="font-display text-xl font-bold text-gold tracking-wide">Caminho Vivo</h1>
                 </motion.div>
+
+                {/* Streak */}
+                <StreakBadge count={streakCount} />
 
                 {/* Greeting */}
                 <motion.div
@@ -235,8 +256,16 @@ const Index = () => {
                   <p className="mt-1.5 text-sm text-muted-foreground/70">Como você está hoje?</p>
                 </motion.div>
 
+                {/* Daily message */}
+                <DailyMessage />
+
                 {/* Daily verse */}
                 <DailyVerseCard onReflect={handleReflect} />
+
+                {/* Quick actions */}
+                <div className="w-full">
+                  <QuickActions onAction={handleSubmit} />
+                </div>
 
                 {/* Suggestions */}
                 <div className="w-full space-y-2">
@@ -259,7 +288,7 @@ const Index = () => {
                 >
                   <span className="flex items-center justify-center gap-2.5">
                     <Heart size={17} className="text-gold/65" strokeWidth={2} />
-                    Preciso de ajuda hoje
+                    💛 Preciso de ajuda hoje
                   </span>
                 </motion.button>
 
@@ -267,7 +296,7 @@ const Index = () => {
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setScreen("bible")}
-                  className="w-full rounded-2xl glass-card flex items-center justify-center gap-2.5 px-6 py-3.5 text-sm font-medium text-foreground/70 transition-all duration-300 hover:border-border/50"
+                  className="w-full rounded-2xl glass-card flex items-center justify-center gap-2.5 px-6 py-3.5 text-sm font-medium text-foreground/70 transition-all duration-200 hover:border-border/50"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.65, duration: 0.4 }}
@@ -295,7 +324,7 @@ const Index = () => {
                 initial={{ opacity: 0, x: 16 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -16 }}
-                transition={{ duration: 0.35 }}
+                transition={{ duration: 0.3 }}
                 className="py-8"
               >
                 <HelpTopics onSelect={handleHelpSelect} onBack={handleBack} />
@@ -308,7 +337,7 @@ const Index = () => {
                 key="chat"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.25 }}
                 className="py-4 space-y-1"
               >
                 {chatHistory.map((entry, i) => (
@@ -320,7 +349,7 @@ const Index = () => {
                         <motion.div
                           initial={{ opacity: 0, scale: 0.93, y: 6 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
-                          className="max-w-[80%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm leading-relaxed text-foreground/85"
+                          className="max-w-[75%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm leading-relaxed text-foreground/85"
                         >
                           {entry.question}
                         </motion.div>
@@ -331,6 +360,9 @@ const Index = () => {
                 <AnimatePresence>
                   {isLoading && <TypingIndicator />}
                 </AnimatePresence>
+                {showFollowUp && (
+                  <FollowUpButtons onAction={(text) => handleSubmit(text)} />
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -357,12 +389,12 @@ const Index = () => {
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <motion.button
             onClick={toggleListening}
-            animate={isListening ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-            transition={isListening ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : {}}
-            whileTap={{ scale: 0.9 }}
-            className={`flex-shrink-0 rounded-full p-2.5 transition-all duration-300 ${
+            animate={isListening ? { scale: [1, 1.08, 1], boxShadow: ["0 0 0px hsl(213 55% 68% / 0)", "0 0 18px hsl(213 55% 68% / 0.2)", "0 0 0px hsl(213 55% 68% / 0)"] } : { scale: 1 }}
+            transition={isListening ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
+            whileTap={{ scale: 0.88 }}
+            className={`flex-shrink-0 rounded-full p-2.5 transition-all duration-200 ${
               isListening
-                ? "bg-[hsl(var(--blue-soft)/0.1)] text-blue-calm shadow-[0_0_14px_hsl(213_55%_68%/0.15)]"
+                ? "bg-[hsl(var(--blue-soft)/0.12)] text-blue-calm"
                 : "text-muted-foreground/45 hover:text-foreground/65 hover:bg-secondary/30"
             }`}
           >
@@ -382,9 +414,9 @@ const Index = () => {
           <motion.button
             onClick={() => handleSubmit(input)}
             disabled={!input.trim() || isLoading}
-            whileTap={{ scale: 0.88 }}
+            whileTap={{ scale: 0.85 }}
             className="flex-shrink-0 rounded-full bg-[hsl(var(--gold))] p-2.5 text-primary-foreground transition-all duration-200 hover:bg-[hsl(var(--gold-light))] disabled:opacity-10"
-            style={{ boxShadow: "0 2px 10px hsl(43 55% 52% / 0.15)" }}
+            style={{ boxShadow: "0 2px 12px hsl(43 55% 52% / 0.18)" }}
           >
             <Send size={17} />
           </motion.button>
