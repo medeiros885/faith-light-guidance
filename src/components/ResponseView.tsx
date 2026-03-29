@@ -21,7 +21,7 @@ const ResponseView = ({ response, question }: ResponseViewProps) => {
         <motion.div
           initial={{ opacity: 0, scale: 0.93, y: 6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="max-w-[80%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm leading-relaxed text-foreground/85"
+          className="max-w-[75%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm leading-relaxed text-foreground/85"
         >
           {question}
         </motion.div>
