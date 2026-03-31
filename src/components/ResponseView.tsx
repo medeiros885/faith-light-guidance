@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { BookOpen, Lightbulb, Heart, BookMarked, HandHelping, MessageCircle } from "lucide-react";
+import ListenButton from "@/components/ListenButton";
 import type { BibleResponse } from "@/data/mockResponses";
 
 interface ResponseViewProps {
@@ -27,7 +28,7 @@ const ResponseView = ({ response, question }: ResponseViewProps) => {
         </motion.div>
       </div>
 
-      {/* Acolhimento */}
+      {/* Acolhimento — direct answer first */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -95,13 +96,16 @@ const ResponseView = ({ response, question }: ResponseViewProps) => {
         className="flex justify-start"
       >
         <div className="max-w-[86%] assistant-bubble rounded-2xl rounded-tl-sm p-4">
-          <div className="mb-2 flex items-center gap-2 text-gold-light">
-            <BookMarked size={13} strokeWidth={1.6} />
-            <span className="text-[9px] font-semibold uppercase tracking-[0.15em]">Versículos</span>
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-gold-light">
+              <BookMarked size={13} strokeWidth={1.6} />
+              <span className="text-[9px] font-semibold uppercase tracking-[0.15em]">Versículos</span>
+            </div>
+            <ListenButton text={response.versiculos.join(". ")} size="sm" />
           </div>
           <div className="space-y-2">
             {response.versiculos.map((v, i) => (
-              <p key={i} className="text-[13px] leading-relaxed text-foreground/75 border-l-2 border-gold/15 pl-3 italic">
+              <p key={i} className="text-[13px] leading-relaxed text-foreground/75 border-l-2 border-gold/12 pl-3 italic">
                 {v}
               </p>
             ))}
@@ -116,16 +120,19 @@ const ResponseView = ({ response, question }: ResponseViewProps) => {
         transition={sectionDelay(0.85)}
         className="flex justify-start"
       >
-        <div className="max-w-[86%] assistant-bubble rounded-2xl rounded-tl-sm p-4 border-gold/8">
-          <div className="mb-1.5 flex items-center gap-2 text-gold-light">
-            <HandHelping size={13} strokeWidth={1.6} />
-            <span className="text-[9px] font-semibold uppercase tracking-[0.15em]">Oração</span>
+        <div className="max-w-[86%] assistant-bubble rounded-2xl rounded-tl-sm p-4">
+          <div className="mb-1.5 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-gold-light">
+              <HandHelping size={13} strokeWidth={1.6} />
+              <span className="text-[9px] font-semibold uppercase tracking-[0.15em]">Oração</span>
+            </div>
+            <ListenButton text={response.oracao} size="sm" />
           </div>
-          <p className="text-[13px] italic leading-relaxed text-foreground/65">{response.oracao}</p>
+          <p className="text-[13px] italic leading-relaxed text-foreground/60">{response.oracao}</p>
         </div>
       </motion.div>
 
-      {/* Follow-up */}
+      {/* Follow-up — always guide to next step */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
