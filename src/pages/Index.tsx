@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Send, ArrowLeft, BookOpen, Heart, Home, Search, MessageCircle } from "lucide-react";
+import { Mic, MicOff, Send, ArrowLeft, BookOpen, Heart, Home, MessageCircle } from "lucide-react";
 import bibleLogo from "@/assets/bible-logo.png";
 import SuggestionCard from "@/components/SuggestionCard";
 import ResponseView from "@/components/ResponseView";
@@ -12,6 +12,11 @@ import QuickActions from "@/components/QuickActions";
 import FollowUpButtons from "@/components/FollowUpButtons";
 import StreakBadge from "@/components/StreakBadge";
 import DailyMessage from "@/components/DailyMessage";
+import EmotionSelector from "@/components/EmotionSelector";
+import type { UserEmotion } from "@/components/EmotionSelector";
+import GuidedCalm from "@/components/GuidedCalm";
+import FloatingBackground from "@/components/FloatingBackground";
+import ListenButton from "@/components/ListenButton";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
 import { generateMockResponse, type BibleResponse } from "@/data/mockResponses";
 
@@ -41,6 +46,8 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<"idle" | "listening" | "processing">("idle");
+  const [userEmotion, setUserEmotion] = useState<UserEmotion>(null);
+  const [showGuidedCalm, setShowGuidedCalm] = useState(false);
   const [headerPhrase] = useState(
     () => loadingHeaderPhrases[Math.floor(Math.random() * loadingHeaderPhrases.length)]
   );
@@ -50,7 +57,25 @@ const Index = () => {
   const handleSubmitRef = useRef<(q: string) => void>(() => {});
   const { streakCount, recordInteraction } = useDailyStreak();
 
+  // Save emotion to localStorage
+  useEffect(() => {
+    if (userEmotion) localStorage.setItem("cv-emotion", userEmotion);
+  }, [userEmotion]);
+  useEffect(() => {
+    const saved = localStorage.getItem("cv-emotion") as UserEmotion;
+    if (saved) setUserEmotion(saved);
+  }, []);
+
   useEffect(() => { recordInteraction(); }, [recordInteraction]);
+
+  // Show guided calm suggestion when anxious
+  useEffect(() => {
+    if (userEmotion === "ansioso") {
+      // Small delay so user sees it naturally
+      const t = setTimeout(() => setShowGuidedCalm(true), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [userEmotion]);
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -99,11 +124,11 @@ const Index = () => {
     setInput("");
     const delay = 1500 + Math.random() * 1000;
     setTimeout(() => {
-      const response = generateMockResponse(question);
+      const response = generateMockResponse(question, userEmotion);
       setChatHistory((prev) => prev.map((entry, i) => i === prev.length - 1 && entry.response === null ? { ...entry, response } : entry));
       setIsLoading(false);
     }, delay);
-  }, [recordInteraction]);
+  }, [recordInteraction, userEmotion]);
 
   const handleSubmit = (question: string) => {
     if (!question.trim() || isLoading) return;
@@ -120,11 +145,15 @@ const Index = () => {
   };
 
   const handleBack = () => { setScreen("home"); setChatHistory([]); setIsLoading(false); setVoiceStatus("idle"); };
-
   const handleReflect = (verseText: string) => { recordInteraction(); simulateResponse(verseText, false); };
 
   if (screen === "bible") {
-    return <BibleReader onBack={handleBack} onReflect={handleReflect} />;
+    return (
+      <>
+        <FloatingBackground />
+        <BibleReader onBack={handleBack} onReflect={handleReflect} />
+      </>
+    );
   }
 
   const getGreeting = () => {
@@ -137,7 +166,9 @@ const Index = () => {
   const showFollowUp = screen === "chat" && !isLoading && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].response !== null;
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background">
+    <div className="relative flex min-h-[100dvh] flex-col">
+      <FloatingBackground />
+
       {/* Chat header */}
       <AnimatePresence>
         {screen === "chat" && (
@@ -145,7 +176,7 @@ const Index = () => {
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
-            className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/15 bg-background/92 px-5 py-3 backdrop-blur-2xl"
+            className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/10 bg-background/80 px-5 py-3 backdrop-blur-2xl"
           >
             <motion.button whileTap={{ scale: 0.88 }} onClick={handleBack}
               className="rounded-full p-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground hover:bg-secondary/40">
@@ -169,7 +200,7 @@ const Index = () => {
       </AnimatePresence>
 
       {/* Content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth pb-20">
+      <div ref={scrollRef} className="relative z-[1] flex-1 overflow-y-auto scroll-smooth pb-24">
         <div className="mx-auto max-w-lg px-5">
           <AnimatePresence mode="wait">
             {/* ── HOME ── */}
@@ -179,42 +210,46 @@ const Index = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.4 }}
-                className="flex flex-col items-center pb-28 pt-10 gap-7"
+                transition={{ duration: 0.5 }}
+                className="flex flex-col items-center pb-32 pt-12 gap-8"
               >
                 {/* Logo + Streak */}
                 <motion.div className="flex flex-col items-center gap-3"
-                  initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}>
-                  <img src={bibleLogo} alt="Caminho Vivo" width={52} height={52}
-                    className="drop-shadow-[0_0_24px_hsl(43_55%_52%/0.15)]" />
+                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, ease: "easeOut" }}>
+                  <img src={bibleLogo} alt="Caminho Vivo" width={48} height={48}
+                    className="drop-shadow-[0_0_20px_hsl(43_55%_52%/0.12)]" />
                   <h1 className="font-display text-[22px] font-bold text-gold tracking-wide">Caminho Vivo</h1>
                   <StreakBadge count={streakCount} />
                 </motion.div>
 
                 {/* Greeting */}
-                <motion.div className="w-full text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.5 }}>
-                  <p className="text-[16px] font-medium text-foreground/85">{getGreeting()}</p>
-                  <p className="mt-1 text-[13px] text-muted-foreground/60">Como você está hoje?</p>
+                <motion.div className="w-full text-center space-y-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15, duration: 0.6 }}>
+                  <p className="text-lg font-medium text-foreground/90">{getGreeting()}</p>
+                  <p className="text-sm text-muted-foreground/55">Como está seu coração agora?</p>
                 </motion.div>
+
+                {/* Emotion selector */}
+                <EmotionSelector selected={userEmotion} onSelect={setUserEmotion} />
 
                 {/* Glass input */}
                 <motion.div className="w-full" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}>
+                  transition={{ delay: 0.35, duration: 0.5 }}>
                   <div className="relative">
                     <input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
-                      onFocus={() => {}}
-                      placeholder="Como posso te ajudar hoje?"
-                      className="w-full rounded-2xl home-input-glass px-5 py-4 pr-24 text-[14px] text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
+                      placeholder="Escreva ou fale… Deus está ouvindo com você"
+                      aria-label="Escreva sua mensagem"
+                      className="w-full rounded-2xl home-input-glass breathing-border px-5 py-4 pr-24 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                       <motion.button onClick={toggleListening} whileTap={{ scale: 0.85 }}
                         animate={isListening ? { scale: [1, 1.1, 1] } : { scale: 1 }}
                         transition={isListening ? { duration: 1.5, repeat: Infinity } : { duration: 0.2 }}
+                        aria-label={isListening ? "Parar gravação" : "Gravar voz"}
                         className={`rounded-full p-2.5 transition-all duration-200 ${
                           isListening ? "bg-[hsl(var(--gold)/0.15)] text-gold" : "text-gold/40 hover:text-gold/70"
                         }`}>
@@ -222,8 +257,9 @@ const Index = () => {
                       </motion.button>
                       <motion.button onClick={() => handleSubmit(input)} disabled={!input.trim() || isLoading}
                         whileTap={{ scale: 0.85 }}
-                        className="rounded-full bg-[hsl(var(--gold))] p-2.5 text-primary-foreground transition-all duration-200 hover:bg-[hsl(var(--gold-light))] disabled:opacity-15"
-                        style={{ boxShadow: "0 2px 14px hsl(43 55% 52% / 0.2)" }}>
+                        aria-label="Enviar mensagem"
+                        className="rounded-full bg-gold p-2.5 text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-15"
+                        style={{ boxShadow: "0 2px 14px hsl(43 55% 52% / 0.18)" }}>
                         <Send size={16} />
                       </motion.button>
                     </div>
@@ -262,7 +298,7 @@ const Index = () => {
 
                 {/* Suggestions */}
                 <div className="w-full space-y-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/35 px-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/30 px-1">
                     Perguntas frequentes
                   </p>
                   {suggestions.map((s, i) => (
@@ -271,7 +307,7 @@ const Index = () => {
                 </div>
 
                 {/* Brand */}
-                <motion.p className="text-[11px] text-muted-foreground/30 italic tracking-wide"
+                <motion.p className="text-[11px] text-muted-foreground/25 italic tracking-wide"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
                   Você não precisa caminhar sozinho. 💙
                 </motion.p>
@@ -281,7 +317,7 @@ const Index = () => {
             {/* ── HELP ── */}
             {screen === "help" && (
               <motion.div key="help" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.3 }} className="py-8">
+                exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.35 }} className="py-8">
                 <HelpTopics onSelect={handleHelpSelect} onBack={handleBack} />
               </motion.div>
             )}
@@ -289,11 +325,22 @@ const Index = () => {
             {/* ── CHAT ── */}
             {screen === "chat" && (
               <motion.div key="chat" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                transition={{ duration: 0.25 }} className="py-4 space-y-1">
+                transition={{ duration: 0.3 }} className="py-4 space-y-1">
                 {chatHistory.map((entry, i) => (
                   <div key={i}>
                     {entry.response ? (
-                      <ResponseView question={entry.question} response={entry.response} />
+                      <div>
+                        <ResponseView question={entry.question} response={entry.response} />
+                        {/* Listen button for the last response */}
+                        {i === chatHistory.length - 1 && (
+                          <div className="flex justify-start pl-2 -mt-1 mb-2">
+                            <ListenButton
+                              text={`${entry.response.acolhimento}. ${entry.response.explicacao}`}
+                              size="sm"
+                            />
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex justify-end mb-2">
                         <motion.div initial={{ opacity: 0, scale: 0.93, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -319,8 +366,10 @@ const Index = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, duration: 0.4 }}
           className="fixed bottom-5 left-1/2 -translate-x-1/2 z-20 floating-navbar rounded-2xl px-6 py-3 flex items-center gap-8"
+          role="navigation"
+          aria-label="Navegação principal"
         >
-          <button className="flex flex-col items-center gap-1 text-gold">
+          <button className="flex flex-col items-center gap-1 text-gold" aria-current="page">
             <Home size={20} />
             <span className="text-[9px] font-medium">Início</span>
           </button>
@@ -341,7 +390,7 @@ const Index = () => {
 
       {/* ── INPUT BAR (chat/help) ── */}
       {(screen === "chat" || screen === "help") && (
-        <div className="sticky bottom-0 border-t border-border/15 bg-background/92 px-4 pb-[env(safe-area-inset-bottom,16px)] pt-2.5 backdrop-blur-2xl">
+        <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border/10 bg-background/85 px-4 pb-[env(safe-area-inset-bottom,16px)] pt-2.5 backdrop-blur-2xl">
           <AnimatePresence>
             {(isListening || voiceStatus === "processing") && (
               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
@@ -357,6 +406,7 @@ const Index = () => {
               animate={isListening ? { scale: [1, 1.08, 1], boxShadow: ["0 0 0px hsl(213 55% 68% / 0)", "0 0 18px hsl(213 55% 68% / 0.2)", "0 0 0px hsl(213 55% 68% / 0)"] } : { scale: 1 }}
               transition={isListening ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
               whileTap={{ scale: 0.88 }}
+              aria-label={isListening ? "Parar gravação" : "Gravar voz"}
               className={`flex-shrink-0 rounded-full p-2.5 transition-all duration-200 ${
                 isListening ? "bg-[hsl(var(--blue-soft)/0.12)] text-blue-calm" : "text-muted-foreground/45 hover:text-foreground/65 hover:bg-secondary/30"
               }`}>
@@ -364,18 +414,25 @@ const Index = () => {
             </motion.button>
             <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
-              placeholder={isListening ? "Ouvindo..." : "Como posso te ajudar hoje?"}
-              className="flex-1 rounded-full input-field px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/35 focus:outline-none"
+              placeholder={isListening ? "Ouvindo..." : "Escreva ou fale…"}
+              aria-label="Campo de mensagem"
+              className="flex-1 rounded-full input-field px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
               readOnly={isListening} />
             <motion.button onClick={() => handleSubmit(input)} disabled={!input.trim() || isLoading}
               whileTap={{ scale: 0.85 }}
-              className="flex-shrink-0 rounded-full bg-[hsl(var(--gold))] p-2.5 text-primary-foreground transition-all duration-200 hover:bg-[hsl(var(--gold-light))] disabled:opacity-10"
-              style={{ boxShadow: "0 2px 12px hsl(43 55% 52% / 0.18)" }}>
+              aria-label="Enviar"
+              className="flex-shrink-0 rounded-full bg-gold p-2.5 text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-10"
+              style={{ boxShadow: "0 2px 12px hsl(43 55% 52% / 0.15)" }}>
               <Send size={17} />
             </motion.button>
           </div>
         </div>
       )}
+
+      {/* Guided calm overlay */}
+      <AnimatePresence>
+        {showGuidedCalm && <GuidedCalm onClose={() => setShowGuidedCalm(false)} />}
+      </AnimatePresence>
     </div>
   );
 };

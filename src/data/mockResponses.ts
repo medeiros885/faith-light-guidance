@@ -1,4 +1,5 @@
 import { WARMTH_PHRASES } from "./personality";
+import type { UserEmotion } from "@/components/EmotionSelector";
 
 export interface BibleResponse {
   acolhimento: string;
@@ -93,31 +94,67 @@ type Intent = "factual" | "theological" | "emotional" | "prayer" | "verse" | "ge
 
 function detectIntent(q: string): Intent {
   const lower = q.toLowerCase();
-
-  // Prayer requests
   if (/or(a[çr]|e)\s|ora\b|orar|reza|reze|intercede/.test(lower)) return "prayer";
-
-  // Verse requests
   if (/vers[íi]culo|me\s+mostr[ae]|me\s+d[áa]\s+um/.test(lower)) return "verse";
-
-  // Emotional
   if (/trist|sozinho|chorar|sofr|doi|dor|perdi|saudade|vazio|ansio|preocup|nervos|medo|assust|desespero|depress|angúst|cansa/.test(lower)) return "emotional";
-
-  // Factual (who, what, where, when, how many)
   if (/^(quem|qual|quantos?|quantas?|onde|quando|como|o que|por que)\b/.test(lower)) return "factual";
-
-  // Theological
   if (/significa|doutrina|teolog|pecado|salvação|graça|santific|espirito\s+santo|trindade|batismo|dízimo|inferno|céu|arrebatamento|apocalipse/.test(lower)) return "theological";
-
   return "general";
+}
+
+// ── Emotion-aware acolhimento variations ──
+const emotionOpenings: Record<string, string[]> = {
+  triste: [
+    "Eu sinto que isso está pesado pra você…",
+    "Imagino que isso não esteja sendo fácil…",
+    "Seu coração merece cuidado agora.",
+    "Deus vê cada lágrima sua, e nenhuma é esquecida.",
+  ],
+  ansioso: [
+    "Respira fundo… vai ficar tudo bem.",
+    "Imagino que o coração esteja acelerado. Vamos com calma.",
+    "A ansiedade pode apertar, mas Deus segura você.",
+    "Isso realmente pode mexer com a gente…",
+  ],
+  cansado: [
+    "Eu entendo esse cansaço. Deus também descansou — e te convida pra isso.",
+    "Estar cansado não é fraqueza. É sinal de que você tem dado tudo.",
+    "Vem, vamos respirar junto. Sem pressa.",
+  ],
+  confuso: [
+    "Eu sei como é não ter clareza. Mas Deus não te deixa no escuro.",
+    "A confusão passa. A Palavra traz direção.",
+    "Você não precisa ter todas as respostas agora.",
+  ],
+  em_paz: [
+    "Que lindo sentir paz. Isso é um presente de Deus. 😊",
+    "A paz do Senhor é diferente — ela sustenta a alma.",
+    "Aproveita esse momento. Deus está sorrindo com você.",
+  ],
+};
+
+const defaultOpenings = [
+  "Entendo você.",
+  "Obrigado por confiar em mim pra falar sobre isso.",
+  "Faz total sentido sentir isso.",
+  "Isso realmente pode mexer com a gente…",
+  "Eu te ouço. E Deus também.",
+  "Imagino como isso pode ser pesado…",
+];
+
+function getEmotionAcolhimento(emotion: UserEmotion): string {
+  if (emotion && emotionOpenings[emotion]) {
+    return pick(emotionOpenings[emotion]);
+  }
+  return pick(defaultOpenings);
 }
 
 // ── Factual knowledge base ──
 const factualResponses: Record<string, BibleResponse> = {
   "rei_antes_davi": {
-    acolhimento: "Ótima pergunta! A história dos reis de Israel é fascinante. 😊",
+    acolhimento: "Foi Saul. 😊",
     contexto: "O primeiro rei de Israel foi Saul, da tribo de Benjamim. Ele foi ungido pelo profeta Samuel a pedido do povo, que queria um rei como as outras nações.",
-    explicacao: "Saul reinou por cerca de 40 anos, mas desobedeceu a Deus repetidamente. Quando Deus rejeitou Saul como rei, enviou Samuel para ungir Davi — um jovem pastor da tribo de Judá. Então sim: o rei antes de Davi foi Saul.",
+    explicacao: "Saul reinou por cerca de 40 anos, mas desobedeceu a Deus repetidamente. Quando Deus rejeitou Saul como rei, enviou Samuel para ungir Davi — um jovem pastor da tribo de Judá.",
     aplicacao: "A história de Saul nos ensina algo importante: posição sem obediência não se sustenta. Deus não busca pessoas perfeitas, mas corações dispostos a obedecê-lo.",
     versiculos: [
       "1 Samuel 15:22-23 — \"Obedecer é melhor do que sacrificar, e atender, melhor do que a gordura de carneiros.\"",
@@ -127,8 +164,8 @@ const factualResponses: Record<string, BibleResponse> = {
     followUp: "Quer saber mais sobre a vida de Davi ou sobre como ele se tornou rei?"
   },
   "quantos_livros": {
-    acolhimento: "Boa pergunta! Vamos lá 😊",
-    contexto: "A Bíblia é composta por 66 livros: 39 no Antigo Testamento e 27 no Novo Testamento. Foi escrita por cerca de 40 autores diferentes ao longo de aproximadamente 1.500 anos.",
+    acolhimento: "A Bíblia tem 66 livros. 😊",
+    contexto: "São 39 no Antigo Testamento e 27 no Novo Testamento. Foi escrita por cerca de 40 autores diferentes ao longo de aproximadamente 1.500 anos.",
     explicacao: "Os 39 livros do Antigo Testamento incluem a Lei (Gênesis a Deuteronômio), os Históricos, os Poéticos (como Salmos e Provérbios) e os Proféticos. O Novo Testamento tem os 4 Evangelhos, Atos, as Cartas (de Paulo e outros) e o Apocalipse.",
     aplicacao: "Não precisa ler tudo de uma vez! Comece com o Evangelho de João, depois vá para Salmos e Provérbios. Com o tempo, cada livro vai ganhando sentido dentro da grande história.",
     versiculos: [
@@ -141,18 +178,16 @@ const factualResponses: Record<string, BibleResponse> = {
 
 function matchFactual(q: string): BibleResponse | null {
   const lower = q.toLowerCase();
-
   if (/rei\s+(antes|anterior)\s+(d[eo]\s+)?davi|antes\s+d[eo]\s+davi/.test(lower))
     return factualResponses["rei_antes_davi"];
   if (/quantos\s+livros/.test(lower))
     return factualResponses["quantos_livros"];
 
-  // Disciples/apostles
   if (/quantos\s+(disc[ií]pulos|apóstolos)|12\s+disc[ií]pulos|doze\s+disc/.test(lower)) {
     return {
-      acolhimento: "Pergunta muito boa! Os discípulos são personagens centrais da história de Jesus. 😊",
-      contexto: "Jesus escolheu 12 homens para serem seus discípulos mais próximos: Pedro, André, Tiago (filho de Zebedeu), João, Filipe, Bartolomeu, Mateus, Tomé, Tiago (filho de Alfeu), Tadeu, Simão (o Zelote) e Judas Iscariotes.",
-      explicacao: "Depois da traição e morte de Judas, os apóstolos escolheram Matias para substituí-lo (Atos 1:26). Mais tarde, Paulo também foi chamado como apóstolo por Jesus, diretamente. Cada um teve um papel único na expansão do Evangelho pelo mundo.",
+      acolhimento: "Jesus escolheu 12 discípulos. 😊",
+      contexto: "Os doze eram: Pedro, André, Tiago (filho de Zebedeu), João, Filipe, Bartolomeu, Mateus, Tomé, Tiago (filho de Alfeu), Tadeu, Simão (o Zelote) e Judas Iscariotes.",
+      explicacao: "Depois da traição e morte de Judas, os apóstolos escolheram Matias para substituí-lo (Atos 1:26). Mais tarde, Paulo também foi chamado como apóstolo por Jesus. Cada um teve um papel único na expansão do Evangelho pelo mundo.",
       aplicacao: "Os 12 eram pessoas comuns — pescadores, um cobrador de impostos, trabalhadores simples. Deus não escolhe os capacitados; Ele capacita os escolhidos. E isso inclui você.",
       versiculos: [
         "Marcos 3:14 — \"Designou doze, para que estivessem com ele e os enviasse a pregar.\"",
@@ -163,18 +198,17 @@ function matchFactual(q: string): BibleResponse | null {
     };
   }
 
-  // Jesus birth
-  if (/onde\s+jesus\s+nasceu|nascimento\s+de\s+jesus|natal\s+de\s+jesus/.test(lower)) {
+  if (/onde\s+jesus\s+nasceu|nascimento\s+de\s+jesus/.test(lower)) {
     return {
-      acolhimento: "Essa é uma das histórias mais lindas da Bíblia! 😊",
-      contexto: "Jesus nasceu em Belém de Judá, durante o reinado de Herodes, o Grande. Maria e José estavam lá por causa de um censo ordenado pelo imperador romano César Augusto.",
+      acolhimento: "Jesus nasceu em Belém de Judá. 😊",
+      contexto: "Maria e José estavam lá por causa de um censo ordenado pelo imperador romano César Augusto, durante o reinado de Herodes, o Grande.",
       explicacao: "O nascimento em Belém não foi acidental — era uma profecia feita por Miquéias mais de 700 anos antes (Miquéias 5:2). Jesus nasceu em uma manjedoura, entre animais. O Rei dos reis veio ao mundo da forma mais humilde possível.",
-      aplicacao: "O nascimento de Jesus mostra que Deus não se importa com status ou aparências. Ele escolheu nascer entre os simples pra mostrar que está perto de todos — principalmente dos mais humildes.",
+      aplicacao: "O nascimento de Jesus mostra que Deus não se importa com status. Ele escolheu nascer entre os simples pra mostrar que está perto de todos — principalmente dos mais humildes.",
       versiculos: [
         "Miquéias 5:2 — \"Mas tu, Belém Efrata, posto que pequena entre os milhares de Judá, de ti me sairá o que governará em Israel.\"",
         "Lucas 2:7 — \"Deu à luz o seu filho primogênito, envolveu-o em faixas e o deitou em uma manjedoura.\""
       ],
-      oracao: "Senhor Jesus, obrigado(a) por ter vindo ao mundo por mim. Ajuda-me a lembrar que Tu estás presente em cada momento, nos grandes e nos pequenos. Amém.",
+      oracao: "Senhor Jesus, obrigado(a) por ter vindo ao mundo por mim. Tu estás presente em cada momento, nos grandes e nos pequenos. Amém.",
       followUp: "Quer saber mais sobre a infância de Jesus ou sobre o significado do Natal?"
     };
   }
@@ -182,11 +216,16 @@ function matchFactual(q: string): BibleResponse | null {
   return null;
 }
 
-export function generateMockResponse(question: string): BibleResponse {
+// ── Response length control ──
+function isShortQuestion(q: string): boolean {
+  return q.split(/\s+/).length <= 6;
+}
+
+export function generateMockResponse(question: string, emotion?: UserEmotion | null): BibleResponse {
   const q = question.toLowerCase();
   const intent = detectIntent(q);
 
-  // 1. Try factual match first
+  // 1. Try factual match first — always answer directly
   const factual = matchFactual(q);
   if (factual) return factual;
 
@@ -194,45 +233,45 @@ export function generateMockResponse(question: string): BibleResponse {
   if (q.includes("paulo") || q.includes("apóstolo")) {
     return {
       acolhimento: "Que pergunta boa! A história de Paulo é uma das mais incríveis da Bíblia. 😊",
-      contexto: "Paulo — antes chamado Saulo — era um cara que perseguia cristãos com toda a sua energia. Ele realmente acreditava que estava fazendo a coisa certa. Até que um dia, na estrada de Damasco, ele teve um encontro com Jesus que mudou tudo.",
-      explicacao: "Depois daquele encontro, Paulo se tornou o maior missionário da história do cristianismo. Ele viajou o mundo antigo fundando igrejas, enfrentou naufrágios, prisões e perseguições — e ainda assim escreveu boa parte do Novo Testamento. Tudo porque uma experiência real com Jesus transformou completamente sua identidade.",
-      aplicacao: "A história de Paulo me faz pensar: se Deus transformou o maior perseguidor da igreja no maior missionário, imagina o que Ele pode fazer com a sua história? Não importa o que você já fez ou de onde você veio — Deus pode reescrever qualquer capítulo.",
+      contexto: "Paulo — antes chamado Saulo — era um cara que perseguia cristãos com toda a sua energia. Até que na estrada de Damasco, ele teve um encontro com Jesus que mudou tudo.",
+      explicacao: "Depois daquele encontro, Paulo se tornou o maior missionário da história do cristianismo. Ele viajou o mundo antigo fundando igrejas, enfrentou naufrágios, prisões e perseguições — e ainda assim escreveu boa parte do Novo Testamento.",
+      aplicacao: "Se Deus transformou o maior perseguidor da igreja no maior missionário, imagina o que Ele pode fazer com a sua história? Não importa de onde você veio — Deus pode reescrever qualquer capítulo.",
       versiculos: [
         "Atos 9:15 — \"Este é para mim um instrumento escolhido para levar o meu nome perante os gentios.\"",
         "Gálatas 2:20 — \"Já estou crucificado com Cristo; e vivo, não mais eu, mas Cristo vive em mim.\""
       ],
       oracao: "Senhor, assim como Tu transformaste Paulo, transforma a minha vida também. Usa a minha história — com tudo que ela tem — pra Tua glória. Amém.",
-      followUp: "Quer que eu te conte mais sobre alguma passagem específica da vida de Paulo? Ou quer saber sobre outro personagem bíblico?"
+      followUp: "Quer que eu te conte mais sobre alguma passagem específica da vida de Paulo?"
     };
   }
 
   if (q.includes("perdão") || q.includes("perdoar")) {
     return {
-      acolhimento: "Falar sobre perdão nem sempre é fácil, né? Às vezes a ferida ainda dói. Eu entendo. Vamos conversar sobre isso com calma. 💙",
-      contexto: "O perdão é um dos temas mais centrais de toda a Bíblia. Jesus falou sobre isso muitas vezes. Quando Pedro perguntou 'Quantas vezes devo perdoar?', Jesus respondeu: 'Não sete, mas setenta vezes sete.' Ou seja: sempre.",
-      explicacao: "Mas perdoar não significa fingir que não doeu. Não significa dizer 'tudo bem' quando não está tudo bem. Perdoar é escolher soltar o peso da mágoa — não pelo outro, mas por você. É dizer: 'Eu não vou mais carregar isso. Eu entrego a justiça nas mãos de Deus.' E isso é libertador.",
-      aplicacao: "Se tem alguém que você precisa perdoar, talvez o primeiro passo seja só falar com Deus sobre isso. Tipo: 'Deus, eu não consigo perdoar sozinho(a). Me ajuda.' Perdão é um processo, não um momento. E tá tudo bem ir devagar.",
+      acolhimento: `${getEmotionAcolhimento(emotion ?? null)} Falar sobre perdão nem sempre é fácil, né? 💙`,
+      contexto: "O perdão é um dos temas mais centrais de toda a Bíblia. Quando Pedro perguntou 'Quantas vezes devo perdoar?', Jesus respondeu: 'Não sete, mas setenta vezes sete.' Ou seja: sempre.",
+      explicacao: "Perdoar não significa fingir que não doeu. É escolher soltar o peso da mágoa — não pelo outro, mas por você. É dizer: 'Eu não vou mais carregar isso. Eu entrego a justiça nas mãos de Deus.'",
+      aplicacao: "Se tem alguém que você precisa perdoar, o primeiro passo pode ser falar com Deus sobre isso: 'Deus, eu não consigo perdoar sozinho(a). Me ajuda.' Perdão é um processo, não um momento. E tá tudo bem ir devagar.",
       versiculos: [
         "Efésios 4:32 — \"Sejam bondosos e compassivos uns para com os outros, perdoando-se mutuamente, assim como Deus os perdoou em Cristo.\"",
         "Mateus 6:14 — \"Porque, se perdoardes aos homens as suas ofensas, também vosso Pai celestial vos perdoará.\""
       ],
-      oracao: "Pai, Tu sabes o quanto isso me machucou. Eu não consigo perdoar na minha força, mas escolho começar esse processo com a Tua ajuda. Tira de mim a amargura e enche meu coração de graça. Amém.",
-      followUp: "Quer que eu aprofunde isso com você? Posso te ajudar a entender como perdoar quando parece impossível."
+      oracao: "Pai, Tu sabes o quanto isso me machucou. Eu escolho começar esse processo com a Tua ajuda. Tira de mim a amargura e enche meu coração de graça. Amém.",
+      followUp: "Quer dar o próximo passo? Posso te ajudar a entender como perdoar quando parece impossível."
     };
   }
 
   if (q.includes("fé")) {
     return {
-      acolhimento: "Essa é uma das perguntas mais bonitas que alguém pode fazer. Falar sobre fé é falar sobre o que sustenta tudo. 😊",
-      contexto: "A Bíblia define fé de um jeito muito especial em Hebreus 11:1 — 'A certeza daquilo que esperamos e a prova das coisas que não vemos.' É um dos versículos mais profundos das Escrituras.",
-      explicacao: "Fé não é a ausência de dúvida. Lê de novo: fé não é nunca ter dúvida. É escolher confiar em Deus mesmo quando você não entende tudo. É dar um passo no escuro sabendo que Deus segura sua mão. Todo mundo que a Bíblia chama de 'herói da fé' teve momentos de questionamento. E tudo bem.",
-      aplicacao: "Quer exercitar sua fé hoje? Tenta isso: pense em algo que parece impossível na sua vida agora. Fala com Deus sobre isso — com honestidade. Depois, tenta lembrar de um momento em que Ele já foi fiel. Conectar o passado com o presente fortalece a fé pro futuro.",
+      acolhimento: `${getEmotionAcolhimento(emotion ?? null)} Falar sobre fé é falar sobre o que sustenta tudo. 😊`,
+      contexto: "A Bíblia define fé em Hebreus 11:1 — 'A certeza daquilo que esperamos e a prova das coisas que não vemos.'",
+      explicacao: "Fé não é a ausência de dúvida. É escolher confiar em Deus mesmo quando você não entende tudo. Todo mundo que a Bíblia chama de 'herói da fé' teve momentos de questionamento. E tudo bem.",
+      aplicacao: "Quer exercitar sua fé hoje? Pense em algo que parece impossível na sua vida. Fala com Deus sobre isso — com honestidade. Depois, lembre de um momento em que Ele já foi fiel. Conectar o passado com o presente fortalece a fé pro futuro.",
       versiculos: [
         "Hebreus 11:1 — \"Ora, a fé é a certeza daquilo que esperamos e a prova das coisas que não vemos.\"",
         "Romanos 10:17 — \"A fé vem pelo ouvir, e o ouvir pela palavra de Deus.\""
       ],
-      oracao: "Senhor, aumenta minha fé. Nos dias em que eu duvidar, me lembra de quem Tu és. Me ajuda a confiar mesmo quando eu não vejo o caminho. Amém.",
-      followUp: "Quer que eu te conte sobre alguém na Bíblia que teve uma fé incrível mesmo em momentos difíceis?"
+      oracao: "Senhor, aumenta minha fé. Nos dias em que eu duvidar, me lembra de quem Tu és. Amém.",
+      followUp: "Quer dar o próximo passo? Posso te contar sobre alguém na Bíblia que teve uma fé incrível."
     };
   }
 
@@ -240,9 +279,9 @@ export function generateMockResponse(question: string): BibleResponse {
   if (intent === "prayer") {
     return {
       acolhimento: "Claro, eu posso orar com você agora. É muito bonito quando alguém para e busca a Deus assim. 💙",
-      contexto: "A oração é uma das formas mais poderosas de se conectar com Deus. Jesus mesmo ensinou seus discípulos a orar. Não precisa ser bonito ou perfeito — Deus quer ouvir o seu coração, exatamente como ele está.",
-      explicacao: "Orar é simplesmente conversar com Deus. Não tem fórmula mágica. Pode ser em voz alta, em silêncio, escrevendo, chorando. Ele ouve tudo.",
-      aplicacao: "Vou orar com você agora. Enquanto lê, tenta abrir o coração como se estivesse conversando com o melhor amigo — porque é exatamente isso que Ele é.",
+      contexto: "A oração é uma das formas mais poderosas de se conectar com Deus. Não precisa ser bonito ou perfeito — Deus quer ouvir o seu coração, exatamente como ele está.",
+      explicacao: "Orar é simplesmente conversar com Deus. Não tem fórmula. Pode ser em voz alta, em silêncio, escrevendo, chorando. Ele ouve tudo.",
+      aplicacao: "Enquanto lê esta oração, tenta abrir o coração como se estivesse conversando com o melhor amigo — porque é exatamente isso que Ele é.",
       versiculos: [
         "Filipenses 4:6 — \"Não andem ansiosos por coisa alguma, mas em tudo, pela oração e súplicas, apresentem seus pedidos a Deus.\"",
         "Mateus 7:7 — \"Peçam, e será dado; busquem, e encontrarão; batam, e a porta será aberta.\""
@@ -272,12 +311,12 @@ export function generateMockResponse(question: string): BibleResponse {
     const chosen = verseOptions[Math.floor(Math.random() * verseOptions.length)];
     return {
       acolhimento: "Com muito carinho, separei um versículo especial pra você hoje. 😊",
-      contexto: "A Palavra de Deus é viva — ela fala com a gente exatamente no momento certo. Deixa eu te mostrar algo:",
+      contexto: "A Palavra de Deus é viva — ela fala com a gente exatamente no momento certo.",
       explicacao: chosen.explicacao,
-      aplicacao: "Tenta fazer isso: lê o versículo devagar, duas ou três vezes. Deixa cada palavra entrar. Depois, pergunta a Deus: 'O que Tu queres me dizer com isso hoje?'",
+      aplicacao: "Lê o versículo devagar, duas ou três vezes. Deixa cada palavra entrar. Depois, pergunta a Deus: 'O que Tu queres me dizer com isso hoje?'",
       versiculos: chosen.versiculos,
       oracao: "Senhor, fala comigo através da Tua Palavra. Abre meus olhos pra ver o que Tu queres me mostrar. Amém.",
-      followUp: "Quer que eu te mostre outro versículo, ou prefere refletir mais sobre esse?"
+      followUp: "Quer dar o próximo passo? Posso te mostrar outro versículo, ou refletir mais sobre esse."
     };
   }
 
@@ -287,8 +326,8 @@ export function generateMockResponse(question: string): BibleResponse {
   const isAfraid = /medo|assustad|terror|pavor|receio/.test(q);
 
   if (isSad || isAnxious || isAfraid) {
-    const emotion = isSad ? "tristeza" : isAnxious ? "ansiedade" : "medo";
-    const topic = helpTopics.find(t => t.id === emotion);
+    const emotionId = isSad ? "tristeza" : isAnxious ? "ansiedade" : "medo";
+    const topic = helpTopics.find(t => t.id === emotionId);
     if (topic) return topic.response;
   }
 
@@ -296,33 +335,40 @@ export function generateMockResponse(question: string): BibleResponse {
   if (/obrigad[oa]|gratidão|agradeç|grato|grata/.test(q)) {
     return {
       acolhimento: "Que lindo! Um coração grato é um coração próximo de Deus. 😊",
-      contexto: "A gratidão é um tema presente em toda a Bíblia. Os Salmos estão cheios de louvor e agradecimento. Paulo, mesmo preso, escreveu sobre ser grato em todas as circunstâncias.",
-      explicacao: "Gratidão não é negar os problemas — é reconhecer que, mesmo no meio deles, existe algo bom. E quando a gente agradece, algo muda dentro de nós: a perspectiva se transforma.",
-      aplicacao: "Que tal começar um hábito? Toda noite, antes de dormir, anota 3 coisas pelas quais você é grato(a). Pode ser simples: um café quente, uma conversa, o sol. Com o tempo, isso muda a forma como você vê a vida.",
+      contexto: "A gratidão é um tema presente em toda a Bíblia. Paulo, mesmo preso, escreveu sobre ser grato em todas as circunstâncias.",
+      explicacao: "Gratidão não é negar os problemas — é reconhecer que, mesmo no meio deles, existe algo bom. E quando a gente agradece, a perspectiva se transforma.",
+      aplicacao: "Que tal começar um hábito? Toda noite, antes de dormir, anota 3 coisas pelas quais você é grato(a). Pode ser simples: um café quente, uma conversa, o sol.",
       versiculos: [
         "1 Tessalonicenses 5:18 — \"Em tudo dai graças, porque esta é a vontade de Deus em Cristo Jesus para convosco.\"",
         "Salmos 100:4 — \"Entrai pelas portas dele com ações de graças e nos seus átrios com louvor.\""
       ],
-      oracao: "Pai, obrigado(a). Por tudo. Pelo que eu vejo e pelo que eu não vejo. Me ensina a viver com um coração grato todos os dias. Amém.",
-      followUp: "Quer que eu te ajude a criar um momento de gratidão diário?"
+      oracao: "Pai, obrigado(a). Por tudo. Pelo que eu vejo e pelo que eu não vejo. Me ensina a viver com um coração grato. Amém.",
+      followUp: "Quer dar o próximo passo? Posso te ajudar a criar um momento de gratidão diário."
     };
   }
 
-  // 6. Default — adapted by intent
+  // 6. Default — adapted by intent and emotion
+  const emotionAcolhimento = getEmotionAcolhimento(emotion ?? null);
+  const isShort = isShortQuestion(question);
+
   const defaultAcolhimento = intent === "factual"
-    ? `Boa pergunta! Vamos ver o que podemos descobrir sobre isso. 😊`
-    : `${pick(WARMTH_PHRASES.validation)} ${pick(WARMTH_PHRASES.transition)} 😊`;
+    ? `Boa pergunta! Vamos ver o que podemos descobrir. 😊`
+    : emotionAcolhimento;
 
   return {
     acolhimento: defaultAcolhimento,
-    contexto: "A Bíblia é incrivelmente rica sobre todos os aspectos da vida. Deus se importa com cada detalhe — das grandes questões existenciais até as coisas do dia a dia.",
-    explicacao: "Quando a gente busca respostas na Palavra com o coração aberto, Deus tem um jeito de falar exatamente o que a gente precisa ouvir. Às vezes é uma confirmação, às vezes é uma direção nova, às vezes é simplesmente paz.",
-    aplicacao: "Minha sugestão? Separa um momento de quietude hoje — pode ser 10 minutos. Abre a Bíblia (ou um app), lê um Salmo com calma, e depois fica em silêncio. Pergunta a Deus: 'O que Tu queres me dizer hoje?' E espera. Ele fala.",
+    contexto: isShort
+      ? "A Bíblia tem muito a dizer sobre isso."
+      : "A Bíblia é incrivelmente rica sobre todos os aspectos da vida. Deus se importa com cada detalhe — das grandes questões existenciais até as coisas do dia a dia.",
+    explicacao: isShort
+      ? "Quando a gente busca na Palavra com o coração aberto, Deus fala o que a gente precisa ouvir."
+      : "Quando a gente busca respostas na Palavra com o coração aberto, Deus tem um jeito de falar exatamente o que a gente precisa ouvir. Às vezes é uma confirmação, às vezes é uma direção nova, às vezes é simplesmente paz.",
+    aplicacao: "Separa um momento de quietude hoje — pode ser 10 minutos. Abre a Bíblia, lê um Salmo com calma, e depois fica em silêncio. Pergunta a Deus: 'O que Tu queres me dizer hoje?' E espera.",
     versiculos: [
       "Tiago 1:5 — \"Se algum de vocês tem falta de sabedoria, peça a Deus, que a todos dá livremente, sem criticar.\"",
       "Salmos 119:105 — \"Lâmpada para os meus pés é a tua palavra e luz para o meu caminho.\""
     ],
     oracao: "Deus, ilumina o meu entendimento. Fala comigo através da Tua Palavra. Guia os meus passos e dá clareza ao meu coração. Amém.",
-    followUp: pick(WARMTH_PHRASES.closing)
+    followUp: "Quer dar o próximo passo? " + pick(WARMTH_PHRASES.closing)
   };
 }

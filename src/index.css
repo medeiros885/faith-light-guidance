@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Deep navy foundations — #0B1C2C / #102A43 */
+    /* Deep navy foundations */
     --background: 209 55% 11%;
     --foreground: 213 33% 93%;
 
@@ -16,7 +16,7 @@
     --popover: 210 42% 14%;
     --popover-foreground: 213 33% 93%;
 
-    /* Soft blue primary — #4A90E2 */
+    /* Soft blue primary */
     --primary: 213 70% 59%;
     --primary-foreground: 209 55% 8%;
 
@@ -66,14 +66,14 @@
     --gradient-verse: linear-gradient(160deg, hsl(209 58% 9%) 0%, hsl(210 45% 13%) 100%);
     --gradient-gold-subtle: linear-gradient(135deg, hsl(43 55% 52% / 0.1), hsl(43 45% 42% / 0.04));
 
-    /* Shadows & Glows — very soft */
-    --shadow-soft: 0 2px 16px hsl(209 55% 5% / 0.25);
-    --shadow-card: 0 4px 24px hsl(209 55% 5% / 0.2), 0 1px 4px hsl(209 55% 5% / 0.1);
-    --shadow-gold: 0 0 16px hsl(43 55% 52% / 0.06);
-    --shadow-blue: 0 0 20px hsl(213 70% 59% / 0.08);
-    --glow-gold: 0 0 24px hsl(43 55% 52% / 0.06);
-    --glow-blue: 0 0 24px hsl(213 55% 60% / 0.08);
-    --glow-verse: 0 0 32px hsl(213 70% 59% / 0.06);
+    /* Shadows & Glows */
+    --shadow-soft: 0 2px 16px hsl(209 55% 5% / 0.2);
+    --shadow-card: 0 4px 20px hsl(209 55% 5% / 0.15), 0 1px 3px hsl(209 55% 5% / 0.08);
+    --shadow-gold: 0 0 16px hsl(43 55% 52% / 0.05);
+    --shadow-blue: 0 0 20px hsl(213 70% 59% / 0.06);
+    --glow-gold: 0 0 20px hsl(43 55% 52% / 0.05);
+    --glow-blue: 0 0 20px hsl(213 55% 60% / 0.06);
+    --glow-verse: 0 0 28px hsl(213 70% 59% / 0.05);
 
     /* Typography */
     --font-display: 'Playfair Display', serif;
@@ -102,7 +102,6 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
-    background: var(--gradient-warmth);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: 0.01em;
@@ -146,107 +145,127 @@
     background: var(--gradient-help);
   }
 
+  /* ── Cards ── */
   .glass-card {
     background: var(--gradient-card);
     backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--border) / 0.35);
+    border: 1px solid hsl(var(--border) / 0.25);
     box-shadow: var(--shadow-card);
   }
 
   .verse-card {
     background: var(--gradient-verse);
-    border: 1px solid hsl(var(--border) / 0.25);
+    border: 1px solid hsl(var(--border) / 0.2);
     box-shadow: var(--glow-verse);
   }
 
+  /* ── Chat bubbles ── */
   .user-bubble {
-    background: linear-gradient(135deg, hsl(var(--blue-soft) / 0.15), hsl(var(--blue-soft) / 0.08));
-    border: 1px solid hsl(var(--blue-soft) / 0.12);
+    background: linear-gradient(135deg, hsl(var(--blue-soft) / 0.12), hsl(var(--blue-soft) / 0.06));
+    border: 1px solid hsl(var(--blue-soft) / 0.1);
   }
 
   .assistant-bubble {
     background: var(--gradient-card);
-    border: 1px solid hsl(var(--border) / 0.3);
+    border: 1px solid hsl(var(--border) / 0.2);
     box-shadow: var(--shadow-soft);
   }
 
+  /* ── Input fields ── */
   .input-field {
     background: hsl(var(--navy-light));
-    border: 1px solid hsl(var(--border) / 0.35);
+    border: 1px solid hsl(var(--border) / 0.25);
     transition: border-color 0.4s ease, box-shadow 0.4s ease, background 0.4s ease;
   }
 
   .input-field:focus {
-    border-color: hsl(var(--blue-calm) / 0.3);
-    box-shadow: 0 0 0 3px hsl(var(--blue-calm) / 0.05), 0 0 20px hsl(var(--blue-calm) / 0.04);
+    border-color: hsl(var(--blue-calm) / 0.25);
+    box-shadow: 0 0 0 3px hsl(var(--blue-calm) / 0.04), 0 0 16px hsl(var(--blue-calm) / 0.03);
     background: hsl(var(--navy-light) / 0.85);
   }
 
+  /* ── Buttons ── */
   .gold-highlight-btn {
     background: var(--gradient-gold-subtle);
-    border: 1px solid hsl(var(--gold) / 0.18);
-    box-shadow: 0 0 20px hsl(var(--gold) / 0.05);
+    border: 1px solid hsl(var(--gold) / 0.15);
+    box-shadow: 0 0 16px hsl(var(--gold) / 0.04);
     transition: all 0.3s ease;
   }
 
   .gold-highlight-btn:hover {
-    border-color: hsl(var(--gold) / 0.28);
-    box-shadow: 0 0 28px hsl(var(--gold) / 0.08);
+    border-color: hsl(var(--gold) / 0.25);
+    box-shadow: 0 0 24px hsl(var(--gold) / 0.06);
   }
 
   .gold-highlight-btn:active {
-    box-shadow: 0 0 12px hsl(var(--gold) / 0.04);
+    box-shadow: 0 0 8px hsl(var(--gold) / 0.03);
   }
 
-  /* Home glass input */
+  /* ── Home glass input ── */
   .home-input-glass {
-    background: linear-gradient(145deg, hsl(var(--navy-light) / 0.9), hsl(var(--navy-mid) / 0.7));
-    border: 1px solid hsl(var(--border) / 0.3);
-    box-shadow: 0 4px 24px hsl(209 55% 5% / 0.2), inset 0 1px 0 hsl(213 33% 93% / 0.02);
+    background: linear-gradient(145deg, hsl(var(--navy-light) / 0.85), hsl(var(--navy-mid) / 0.65));
+    border: 1px solid hsl(var(--border) / 0.2);
+    box-shadow: 0 4px 20px hsl(209 55% 5% / 0.15), inset 0 1px 0 hsl(213 33% 93% / 0.02);
     backdrop-filter: blur(20px);
-    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    transition: border-color 0.5s ease, box-shadow 0.5s ease;
   }
 
   .home-input-glass:focus {
-    border-color: hsl(var(--blue-calm) / 0.35);
-    box-shadow: 0 0 0 3px hsl(var(--blue-calm) / 0.06), 0 4px 24px hsl(209 55% 5% / 0.2), 0 0 30px hsl(var(--blue-calm) / 0.04);
+    border-color: hsl(var(--blue-calm) / 0.3);
+    box-shadow: 0 0 0 3px hsl(var(--blue-calm) / 0.05), 0 4px 20px hsl(209 55% 5% / 0.15), 0 0 24px hsl(var(--blue-calm) / 0.03);
   }
 
-  /* Floating navbar */
+  /* ── Breathing border animation ── */
+  .breathing-border {
+    animation: breathe-border 6s ease-in-out infinite;
+  }
+
+  @keyframes breathe-border {
+    0%, 100% {
+      border-color: hsl(var(--border) / 0.2);
+    }
+    50% {
+      border-color: hsl(var(--blue-calm) / 0.15);
+    }
+  }
+
+  /* ── Floating navbar ── */
   .floating-navbar {
-    background: linear-gradient(145deg, hsl(var(--navy-mid) / 0.92), hsl(var(--navy-deep) / 0.88));
-    border: 1px solid hsl(var(--border) / 0.25);
-    box-shadow: 0 8px 32px hsl(209 55% 5% / 0.4), 0 0 1px hsl(213 33% 93% / 0.05);
+    background: linear-gradient(145deg, hsl(var(--navy-mid) / 0.9), hsl(var(--navy-deep) / 0.85));
+    border: 1px solid hsl(var(--border) / 0.2);
+    box-shadow: 0 8px 28px hsl(209 55% 5% / 0.35), 0 0 1px hsl(213 33% 93% / 0.04);
     backdrop-filter: blur(24px);
   }
 
-  /* Bible book cards — Netflix style */
+  /* ── Bible book cards ── */
   .bible-book-card {
-    background: linear-gradient(160deg, hsl(var(--navy-light) / 0.85), hsl(var(--navy-mid) / 0.6));
-    border: 1px solid hsl(var(--border) / 0.25);
-    box-shadow: 0 4px 16px hsl(209 55% 5% / 0.15);
+    background: linear-gradient(160deg, hsl(var(--navy-light) / 0.8), hsl(var(--navy-mid) / 0.55));
+    border: 1px solid hsl(var(--border) / 0.2);
+    box-shadow: 0 4px 14px hsl(209 55% 5% / 0.12);
     backdrop-filter: blur(12px);
+    transition: all 0.35s ease;
   }
 
   .bible-book-card:hover {
-    border-color: hsl(var(--gold) / 0.2);
-    box-shadow: 0 4px 20px hsl(209 55% 5% / 0.2), 0 0 16px hsl(var(--gold) / 0.04);
+    border-color: hsl(var(--gold) / 0.18);
+    box-shadow: 0 4px 18px hsl(209 55% 5% / 0.18), 0 0 12px hsl(var(--gold) / 0.03);
     transform: translateY(-1px);
   }
 
-  /* Bible chapter buttons */
+  /* ── Bible chapter buttons ── */
   .bible-chapter-btn {
-    background: linear-gradient(145deg, hsl(var(--navy-light) / 0.7), hsl(var(--navy-mid) / 0.5));
-    border: 1px solid hsl(var(--border) / 0.2);
-    box-shadow: 0 2px 8px hsl(209 55% 5% / 0.1);
+    background: linear-gradient(145deg, hsl(var(--navy-light) / 0.65), hsl(var(--navy-mid) / 0.45));
+    border: 1px solid hsl(var(--border) / 0.15);
+    box-shadow: 0 2px 6px hsl(209 55% 5% / 0.08);
+    transition: all 0.3s ease;
   }
 
   .bible-chapter-btn:hover {
-    background: linear-gradient(145deg, hsl(var(--navy-light) / 0.9), hsl(var(--navy-mid) / 0.7));
-    border-color: hsl(var(--gold) / 0.2);
+    background: linear-gradient(145deg, hsl(var(--navy-light) / 0.85), hsl(var(--navy-mid) / 0.65));
+    border-color: hsl(var(--gold) / 0.15);
   }
 
-  /* Scrollbar hide */
+  /* ── Scrollbar hide ── */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -255,40 +274,40 @@
     display: none;
   }
 
-  /* Emotion card variants */
+  /* ── Emotion card variants ── */
   .emotion-card-anxiety {
-    border-color: hsl(var(--emotion-anxiety) / 0.18);
-    background: linear-gradient(145deg, hsl(var(--emotion-anxiety) / 0.07), hsl(var(--navy-mid) / 0.5));
+    border-color: hsl(var(--emotion-anxiety) / 0.15);
+    background: linear-gradient(145deg, hsl(var(--emotion-anxiety) / 0.06), hsl(var(--navy-mid) / 0.45));
   }
   .emotion-card-anxiety:hover {
-    border-color: hsl(var(--emotion-anxiety) / 0.3);
-    box-shadow: 0 0 16px hsl(var(--emotion-anxiety) / 0.08);
+    border-color: hsl(var(--emotion-anxiety) / 0.25);
+    box-shadow: 0 0 14px hsl(var(--emotion-anxiety) / 0.06);
   }
 
   .emotion-card-sadness {
-    border-color: hsl(var(--emotion-sadness) / 0.18);
-    background: linear-gradient(145deg, hsl(var(--emotion-sadness) / 0.07), hsl(var(--navy-mid) / 0.5));
+    border-color: hsl(var(--emotion-sadness) / 0.15);
+    background: linear-gradient(145deg, hsl(var(--emotion-sadness) / 0.06), hsl(var(--navy-mid) / 0.45));
   }
   .emotion-card-sadness:hover {
-    border-color: hsl(var(--emotion-sadness) / 0.3);
-    box-shadow: 0 0 16px hsl(var(--emotion-sadness) / 0.08);
+    border-color: hsl(var(--emotion-sadness) / 0.25);
+    box-shadow: 0 0 14px hsl(var(--emotion-sadness) / 0.06);
   }
 
   .emotion-card-fear {
-    border-color: hsl(var(--emotion-fear) / 0.18);
-    background: linear-gradient(145deg, hsl(var(--emotion-fear) / 0.07), hsl(var(--navy-mid) / 0.5));
+    border-color: hsl(var(--emotion-fear) / 0.15);
+    background: linear-gradient(145deg, hsl(var(--emotion-fear) / 0.06), hsl(var(--navy-mid) / 0.45));
   }
   .emotion-card-fear:hover {
-    border-color: hsl(var(--emotion-fear) / 0.3);
-    box-shadow: 0 0 16px hsl(var(--emotion-fear) / 0.08);
+    border-color: hsl(var(--emotion-fear) / 0.25);
+    box-shadow: 0 0 14px hsl(var(--emotion-fear) / 0.06);
   }
 
   .emotion-card-temptation {
-    border-color: hsl(var(--emotion-temptation) / 0.18);
-    background: linear-gradient(145deg, hsl(var(--emotion-temptation) / 0.07), hsl(var(--navy-mid) / 0.5));
+    border-color: hsl(var(--emotion-temptation) / 0.15);
+    background: linear-gradient(145deg, hsl(var(--emotion-temptation) / 0.06), hsl(var(--navy-mid) / 0.45));
   }
   .emotion-card-temptation:hover {
-    border-color: hsl(var(--emotion-temptation) / 0.3);
-    box-shadow: 0 0 16px hsl(var(--emotion-temptation) / 0.08);
+    border-color: hsl(var(--emotion-temptation) / 0.25);
+    box-shadow: 0 0 14px hsl(var(--emotion-temptation) / 0.06);
   }
 }
