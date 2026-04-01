@@ -382,7 +382,7 @@ const Index = () => {
             <span className="text-[9px] font-medium">Chat</span>
           </button>
         </motion.nav>
-      )
+      )}
 
       {/* ── INPUT BAR (chat/help) ── */}
       {(screen === "chat" || screen === "help") && (
