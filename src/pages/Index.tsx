@@ -360,7 +360,7 @@ const Index = () => {
       </div>
 
       {/* ── FIXED BOTTOM NAVBAR ── */}
-      {screen !== "bible" && (
+      {screen === "home" && (
         <motion.nav
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
