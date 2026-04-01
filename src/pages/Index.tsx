@@ -359,34 +359,28 @@ const Index = () => {
         </div>
       </div>
 
-      {/* ── FLOATING NAVBAR ── */}
-      {screen === "home" && (
-        <motion.nav
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.4 }}
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 z-20 floating-navbar rounded-2xl px-6 py-3 flex items-center gap-8"
-          role="navigation"
-          aria-label="Navegação principal"
-        >
-          <button className="flex flex-col items-center gap-1 text-gold" aria-current="page">
-            <Home size={20} />
-            <span className="text-[9px] font-medium">Início</span>
-          </button>
-          <button onClick={() => setScreen("bible")} className="flex flex-col items-center gap-1 text-muted-foreground/50 hover:text-foreground/70 transition-colors">
-            <BookOpen size={20} />
-            <span className="text-[9px] font-medium">Bíblia</span>
-          </button>
-          <button onClick={() => { setInput(""); setScreen("chat"); }} className="flex flex-col items-center gap-1 text-muted-foreground/50 hover:text-foreground/70 transition-colors">
-            <MessageCircle size={20} />
-            <span className="text-[9px] font-medium">Chat</span>
-          </button>
-          <button onClick={() => setScreen("help")} className="flex flex-col items-center gap-1 text-muted-foreground/50 hover:text-foreground/70 transition-colors">
-            <Heart size={20} />
-            <span className="text-[9px] font-medium">Ajuda</span>
-          </button>
-        </motion.nav>
-      )}
+      {/* ── FIXED BOTTOM NAVBAR ── */}
+      <motion.nav
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.4 }}
+        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-20 floating-navbar rounded-3xl px-8 py-3.5 flex items-center gap-10"
+        role="navigation"
+        aria-label="Navegação principal"
+      >
+        <button onClick={() => { setScreen("home"); setChatHistory([]); }} className={`flex flex-col items-center gap-1 transition-colors duration-200 ${screen === "home" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
+          <Home size={20} />
+          <span className="text-[9px] font-medium">Início</span>
+        </button>
+        <button onClick={() => setScreen("bible")} className="flex flex-col items-center gap-1 text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200">
+          <BookOpen size={20} />
+          <span className="text-[9px] font-medium">Bíblia</span>
+        </button>
+        <button onClick={() => { setInput(""); setScreen("chat"); }} className={`flex flex-col items-center gap-1 transition-colors duration-200 ${screen === "chat" || screen === "help" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
+          <MessageCircle size={20} />
+          <span className="text-[9px] font-medium">Chat</span>
+        </button>
+      </motion.nav>
 
       {/* ── INPUT BAR (chat/help) ── */}
       {(screen === "chat" || screen === "help") && (

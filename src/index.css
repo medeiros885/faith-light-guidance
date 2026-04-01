@@ -6,34 +6,34 @@
 
 @layer base {
   :root {
-    /* Deep navy foundations */
-    --background: 209 55% 11%;
-    --foreground: 213 33% 93%;
+    /* Deep cosmic foundations */
+    --background: 230 45% 8%;
+    --foreground: 240 20% 93%;
 
-    --card: 210 42% 14%;
-    --card-foreground: 213 33% 93%;
+    --card: 250 35% 12%;
+    --card-foreground: 240 20% 93%;
 
-    --popover: 210 42% 14%;
-    --popover-foreground: 213 33% 93%;
+    --popover: 250 35% 12%;
+    --popover-foreground: 240 20% 93%;
 
-    /* Soft blue primary */
-    --primary: 213 70% 59%;
-    --primary-foreground: 209 55% 8%;
+    /* Purple primary */
+    --primary: 263 70% 58%;
+    --primary-foreground: 230 45% 6%;
 
-    --secondary: 210 38% 16%;
-    --secondary-foreground: 213 28% 85%;
+    --secondary: 250 32% 15%;
+    --secondary-foreground: 260 22% 82%;
 
-    --muted: 210 30% 19%;
-    --muted-foreground: 210 16% 50%;
+    --muted: 248 28% 17%;
+    --muted-foreground: 250 14% 48%;
 
-    --accent: 210 40% 22%;
-    --accent-foreground: 213 33% 93%;
+    --accent: 255 35% 20%;
+    --accent-foreground: 240 20% 93%;
 
     --destructive: 0 55% 48%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 240 40% 98%;
 
-    --border: 210 22% 20%;
-    --input: 210 22% 20%;
+    --border: 255 20% 18%;
+    --input: 255 20% 18%;
     --ring: 43 55% 52%;
 
     --radius: 1rem;
@@ -42,51 +42,53 @@
     --gold: 43 55% 52%;
     --gold-light: 43 58% 60%;
     --gold-muted: 43 35% 42%;
-    --navy-deep: 209 58% 7%;
-    --navy-mid: 210 42% 14%;
-    --navy-light: 210 32% 18%;
-    --blue-soft: 213 70% 59%;
-    --blue-calm: 213 55% 68%;
-    --blue-whisper: 213 42% 75%;
-    --blue-glow: 213 80% 70%;
+    --navy-deep: 230 50% 5%;
+    --navy-mid: 250 35% 12%;
+    --navy-light: 248 28% 17%;
+    --purple-soft: 263 70% 58%;
+    --purple-calm: 263 55% 68%;
+    --purple-whisper: 265 42% 75%;
+    --purple-glow: 263 80% 70%;
+    --blue-soft: 220 65% 55%;
+    --blue-calm: 220 50% 65%;
 
     /* Emotion colors */
-    --emotion-anxiety: 200 50% 55%;
-    --emotion-sadness: 215 28% 48%;
-    --emotion-fear: 222 45% 38%;
+    --emotion-anxiety: 263 50% 55%;
+    --emotion-sadness: 240 28% 48%;
+    --emotion-fear: 250 45% 38%;
     --emotion-temptation: 25 45% 50%;
 
     /* Path/journey accent */
-    --path-glow: 190 45% 52%;
+    --path-glow: 270 45% 55%;
 
     /* Gradients */
-    --gradient-help: linear-gradient(135deg, hsl(213 50% 40%), hsl(213 58% 52%));
-    --gradient-warmth: linear-gradient(180deg, hsl(209 55% 11%) 0%, hsl(210 48% 13%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(210 42% 15%) 0%, hsl(210 40% 12%) 100%);
-    --gradient-verse: linear-gradient(160deg, hsl(209 58% 9%) 0%, hsl(210 45% 13%) 100%);
+    --gradient-help: linear-gradient(135deg, hsl(263 50% 40%), hsl(263 58% 52%));
+    --gradient-warmth: linear-gradient(180deg, hsl(230 45% 8%) 0%, hsl(250 38% 11%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(250 35% 13%) 0%, hsl(248 33% 10%) 100%);
+    --gradient-verse: linear-gradient(160deg, hsl(230 50% 7%) 0%, hsl(250 40% 12%) 100%);
     --gradient-gold-subtle: linear-gradient(135deg, hsl(43 55% 52% / 0.1), hsl(43 45% 42% / 0.04));
 
     /* Shadows & Glows */
-    --shadow-soft: 0 2px 16px hsl(209 55% 5% / 0.2);
-    --shadow-card: 0 4px 20px hsl(209 55% 5% / 0.15), 0 1px 3px hsl(209 55% 5% / 0.08);
+    --shadow-soft: 0 2px 16px hsl(230 50% 4% / 0.25);
+    --shadow-card: 0 4px 20px hsl(230 50% 4% / 0.2), 0 1px 3px hsl(230 50% 4% / 0.1);
     --shadow-gold: 0 0 16px hsl(43 55% 52% / 0.05);
-    --shadow-blue: 0 0 20px hsl(213 70% 59% / 0.06);
+    --shadow-purple: 0 0 20px hsl(263 70% 58% / 0.08);
     --glow-gold: 0 0 20px hsl(43 55% 52% / 0.05);
-    --glow-blue: 0 0 20px hsl(213 55% 60% / 0.06);
-    --glow-verse: 0 0 28px hsl(213 70% 59% / 0.05);
+    --glow-purple: 0 0 20px hsl(263 55% 60% / 0.08);
+    --glow-verse: 0 0 28px hsl(263 70% 58% / 0.06);
 
     /* Typography */
     --font-display: 'Playfair Display', serif;
     --font-body: 'Inter', sans-serif;
 
     /* Sidebar */
-    --sidebar-background: 209 55% 11%;
-    --sidebar-foreground: 213 33% 93%;
+    --sidebar-background: 230 45% 8%;
+    --sidebar-foreground: 240 20% 93%;
     --sidebar-primary: 43 55% 52%;
-    --sidebar-primary-foreground: 209 55% 8%;
-    --sidebar-accent: 210 40% 22%;
-    --sidebar-accent-foreground: 213 33% 93%;
-    --sidebar-border: 210 22% 20%;
+    --sidebar-primary-foreground: 230 45% 6%;
+    --sidebar-accent: 255 35% 20%;
+    --sidebar-accent-foreground: 240 20% 93%;
+    --sidebar-border: 255 20% 18%;
     --sidebar-ring: 43 55% 52%;
   }
 }
@@ -125,6 +127,10 @@
     color: hsl(var(--gold-light));
   }
 
+  .text-purple-calm {
+    color: hsl(var(--purple-calm));
+  }
+
   .text-blue-calm {
     color: hsl(var(--blue-calm));
   }
@@ -137,8 +143,8 @@
     box-shadow: var(--glow-gold);
   }
 
-  .glow-blue {
-    box-shadow: var(--glow-blue);
+  .glow-purple {
+    box-shadow: var(--glow-purple);
   }
 
   .gradient-help {
@@ -161,8 +167,8 @@
 
   /* ── Chat bubbles ── */
   .user-bubble {
-    background: linear-gradient(135deg, hsl(var(--blue-soft) / 0.12), hsl(var(--blue-soft) / 0.06));
-    border: 1px solid hsl(var(--blue-soft) / 0.1);
+    background: linear-gradient(135deg, hsl(var(--purple-soft) / 0.12), hsl(var(--purple-soft) / 0.06));
+    border: 1px solid hsl(var(--purple-soft) / 0.1);
   }
 
   .assistant-bubble {
@@ -179,8 +185,8 @@
   }
 
   .input-field:focus {
-    border-color: hsl(var(--blue-calm) / 0.25);
-    box-shadow: 0 0 0 3px hsl(var(--blue-calm) / 0.04), 0 0 16px hsl(var(--blue-calm) / 0.03);
+    border-color: hsl(var(--purple-calm) / 0.3);
+    box-shadow: 0 0 0 3px hsl(var(--purple-calm) / 0.05), 0 0 16px hsl(var(--purple-calm) / 0.04);
     background: hsl(var(--navy-light) / 0.85);
   }
 
@@ -205,14 +211,14 @@
   .home-input-glass {
     background: linear-gradient(145deg, hsl(var(--navy-light) / 0.85), hsl(var(--navy-mid) / 0.65));
     border: 1px solid hsl(var(--border) / 0.2);
-    box-shadow: 0 4px 20px hsl(209 55% 5% / 0.15), inset 0 1px 0 hsl(213 33% 93% / 0.02);
+    box-shadow: 0 4px 20px hsl(230 50% 4% / 0.2), inset 0 1px 0 hsl(240 20% 93% / 0.02);
     backdrop-filter: blur(20px);
     transition: border-color 0.5s ease, box-shadow 0.5s ease;
   }
 
   .home-input-glass:focus {
-    border-color: hsl(var(--blue-calm) / 0.3);
-    box-shadow: 0 0 0 3px hsl(var(--blue-calm) / 0.05), 0 4px 20px hsl(209 55% 5% / 0.15), 0 0 24px hsl(var(--blue-calm) / 0.03);
+    border-color: hsl(var(--purple-calm) / 0.35);
+    box-shadow: 0 0 0 3px hsl(var(--purple-calm) / 0.06), 0 4px 20px hsl(230 50% 4% / 0.2), 0 0 24px hsl(var(--purple-calm) / 0.04);
   }
 
   /* ── Breathing border animation ── */
@@ -225,15 +231,15 @@
       border-color: hsl(var(--border) / 0.2);
     }
     50% {
-      border-color: hsl(var(--blue-calm) / 0.15);
+      border-color: hsl(var(--purple-calm) / 0.2);
     }
   }
 
   /* ── Floating navbar ── */
   .floating-navbar {
-    background: linear-gradient(145deg, hsl(var(--navy-mid) / 0.9), hsl(var(--navy-deep) / 0.85));
+    background: linear-gradient(145deg, hsl(var(--navy-mid) / 0.92), hsl(var(--navy-deep) / 0.88));
     border: 1px solid hsl(var(--border) / 0.2);
-    box-shadow: 0 8px 28px hsl(209 55% 5% / 0.35), 0 0 1px hsl(213 33% 93% / 0.04);
+    box-shadow: 0 8px 28px hsl(230 50% 4% / 0.4), 0 0 1px hsl(240 20% 93% / 0.04);
     backdrop-filter: blur(24px);
   }
 
@@ -241,14 +247,14 @@
   .bible-book-card {
     background: linear-gradient(160deg, hsl(var(--navy-light) / 0.8), hsl(var(--navy-mid) / 0.55));
     border: 1px solid hsl(var(--border) / 0.2);
-    box-shadow: 0 4px 14px hsl(209 55% 5% / 0.12);
+    box-shadow: 0 4px 14px hsl(230 50% 4% / 0.15);
     backdrop-filter: blur(12px);
     transition: all 0.35s ease;
   }
 
   .bible-book-card:hover {
-    border-color: hsl(var(--gold) / 0.18);
-    box-shadow: 0 4px 18px hsl(209 55% 5% / 0.18), 0 0 12px hsl(var(--gold) / 0.03);
+    border-color: hsl(var(--purple-soft) / 0.2);
+    box-shadow: 0 4px 18px hsl(230 50% 4% / 0.22), 0 0 12px hsl(var(--purple-soft) / 0.04);
     transform: translateY(-1px);
   }
 
@@ -256,13 +262,13 @@
   .bible-chapter-btn {
     background: linear-gradient(145deg, hsl(var(--navy-light) / 0.65), hsl(var(--navy-mid) / 0.45));
     border: 1px solid hsl(var(--border) / 0.15);
-    box-shadow: 0 2px 6px hsl(209 55% 5% / 0.08);
+    box-shadow: 0 2px 6px hsl(230 50% 4% / 0.1);
     transition: all 0.3s ease;
   }
 
   .bible-chapter-btn:hover {
     background: linear-gradient(145deg, hsl(var(--navy-light) / 0.85), hsl(var(--navy-mid) / 0.65));
-    border-color: hsl(var(--gold) / 0.15);
+    border-color: hsl(var(--purple-soft) / 0.18);
   }
 
   /* ── Scrollbar hide ── */

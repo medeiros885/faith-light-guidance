@@ -2,31 +2,44 @@ import { motion } from "framer-motion";
 
 const FloatingBackground = () => (
   <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-    {/* Layered radial gradients */}
-    <div className="absolute inset-0 bg-gradient-to-b from-[hsl(209_55%_11%)] via-[hsl(210_42%_14%)] to-[hsl(209_48%_10%)]" />
+    {/* Deep cosmic gradient layers */}
+    <div className="absolute inset-0" style={{
+      background: "linear-gradient(180deg, hsl(230 45% 8%) 0%, hsl(255 35% 10%) 35%, hsl(260 30% 13%) 65%, hsl(245 40% 9%) 100%)"
+    }} />
 
-    {/* Soft radial light top */}
-    <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle,hsl(213_55%_60%/0.04)_0%,transparent_70%)]" />
+    {/* Radial purple glow top */}
+    <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[600px] rounded-full"
+      style={{ background: "radial-gradient(circle, hsl(263 55% 55% / 0.05) 0%, transparent 70%)" }} />
 
-    {/* Floating blurred shapes */}
+    {/* Radial gold warmth bottom */}
+    <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 h-[400px] w-[500px] rounded-full"
+      style={{ background: "radial-gradient(ellipse at bottom, hsl(43 55% 52% / 0.02) 0%, transparent 70%)" }} />
+
+    {/* Floating organic shapes */}
     <motion.div
-      animate={{ y: [0, -15, 0], x: [0, 8, 0] }}
-      transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-[20%] left-[10%] h-40 w-40 rounded-full bg-[hsl(213_70%_59%/0.025)] blur-3xl"
+      animate={{ y: [0, -18, 0], x: [0, 10, 0] }}
+      transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute top-[18%] left-[8%] h-44 w-44 rounded-full blur-3xl"
+      style={{ background: "hsl(263 70% 58% / 0.03)" }}
     />
     <motion.div
-      animate={{ y: [0, 12, 0], x: [0, -6, 0] }}
+      animate={{ y: [0, 14, 0], x: [0, -8, 0] }}
+      transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute top-[48%] right-[4%] h-56 w-56 rounded-full blur-3xl"
+      style={{ background: "hsl(280 50% 50% / 0.025)" }}
+    />
+    <motion.div
+      animate={{ y: [0, 12, 0] }}
+      transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute bottom-[12%] left-[18%] h-40 w-40 rounded-full blur-3xl"
+      style={{ background: "hsl(263 55% 60% / 0.025)" }}
+    />
+    <motion.div
+      animate={{ y: [0, -8, 0], x: [0, 6, 0] }}
       transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-[50%] right-[5%] h-52 w-52 rounded-full bg-[hsl(43_55%_52%/0.02)] blur-3xl"
+      className="absolute top-[65%] left-[55%] h-32 w-32 rounded-full blur-3xl"
+      style={{ background: "hsl(43 55% 52% / 0.015)" }}
     />
-    <motion.div
-      animate={{ y: [0, 10, 0] }}
-      transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute bottom-[15%] left-[20%] h-36 w-36 rounded-full bg-[hsl(213_55%_60%/0.02)] blur-3xl"
-    />
-
-    {/* Bottom warm glow */}
-    <div className="absolute bottom-0 left-0 right-0 h-48 bg-[radial-gradient(ellipse_at_bottom,hsl(43_55%_52%/0.015)_0%,transparent_70%)]" />
   </div>
 );
 
