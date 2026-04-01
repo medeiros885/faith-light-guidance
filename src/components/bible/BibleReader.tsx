@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Search, Heart, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Heart, X, Loader2, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { loadBibleIndex, loadBook, searchBible } from "@/data/bible/loader";
 import { useFavoriteVerses } from "@/hooks/useFavoriteVerses";
 import BibleBookList from "./BibleBookList";
