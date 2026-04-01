@@ -86,7 +86,7 @@ const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background">
+    <div className="flex min-h-[100dvh] flex-col bg-background relative z-[2]">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
