@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Search, Heart, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Heart, X, Loader2, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { loadBibleIndex, loadBook, searchBible } from "@/data/bible/loader";
 import { useFavoriteVerses } from "@/hooks/useFavoriteVerses";
 import BibleBookList from "./BibleBookList";
@@ -27,6 +28,8 @@ const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isLoadingBook, setIsLoadingBook] = useState(false);
+  const [bibleVersion, setBibleVersion] = useState("NVI");
+  const [showVersionPicker, setShowVersionPicker] = useState(false);
   const favoriteHook = useFavoriteVerses();
 
   // Load index on mount
@@ -86,7 +89,7 @@ const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background">
+    <div className="flex min-h-[100dvh] flex-col bg-background relative z-[2]">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
@@ -164,6 +167,51 @@ const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Bible version selector */}
+        <div className="relative px-4 pb-2.5 pt-1">
+          <button
+            onClick={() => setShowVersionPicker(!showVersionPicker)}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium text-foreground/60 bg-secondary/30 border border-border/15 transition-all duration-200 hover:bg-secondary/50"
+          >
+            {bibleVersion}
+            <ChevronDown size={12} className={`transition-transform duration-200 ${showVersionPicker ? "rotate-180" : ""}`} />
+          </button>
+          <AnimatePresence>
+            {showVersionPicker && (
+              <motion.div
+                initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute left-4 top-full mt-1 z-20 rounded-xl glass-card border border-border/20 py-1.5 min-w-[140px] shadow-lg"
+              >
+                {["NVI", "ARA", "ARC"].map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => {
+                      if (v === "NVI") {
+                        setBibleVersion(v);
+                        setShowVersionPicker(false);
+                      } else {
+                        toast.info(`Versão ${v} em breve!`);
+                      }
+                    }}
+                    className={`w-full text-left px-4 py-2 text-[12px] transition-colors duration-150 ${
+                      v === bibleVersion
+                        ? "text-gold font-semibold bg-gold/5"
+                        : v === "NVI"
+                        ? "text-foreground/70 hover:bg-secondary/30"
+                        : "text-muted-foreground/40 hover:bg-secondary/20"
+                    }`}
+                  >
+                    {v} {v !== "NVI" && <span className="text-[9px] text-muted-foreground/30 ml-1">em breve</span>}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.header>
 
       {/* Loading overlay */}
