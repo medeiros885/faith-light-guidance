@@ -28,6 +28,8 @@ const BibleReader = ({ onBack, onReflect }: BibleReaderProps) => {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isLoadingBook, setIsLoadingBook] = useState(false);
+  const [bibleVersion, setBibleVersion] = useState("NVI");
+  const [showVersionPicker, setShowVersionPicker] = useState(false);
   const favoriteHook = useFavoriteVerses();
 
   // Load index on mount
