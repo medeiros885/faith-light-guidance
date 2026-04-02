@@ -372,7 +372,7 @@ const Index = () => {
           <Home size={19} />
           <span className="text-[9px] font-medium">Início</span>
         </button>
-        <button onClick={() => setScreen("bible")} className={`flex flex-col items-center gap-1 transition-all duration-200 ${screen === "bible" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
+        <button onClick={() => setScreen("bible")} className="flex flex-col items-center gap-1 transition-all duration-200 text-muted-foreground/50 hover:text-foreground/70">
           <BookOpen size={24} />
           <span className="text-[10px] font-semibold">Bíblia</span>
         </button>
