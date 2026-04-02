@@ -516,7 +516,7 @@ function matchEmotional(q: string, emotion?: UserEmotion | null): BibleResponse 
     };
   }
 
-  if (/medo/.test(lower) || emotion === "medo") {
+  if (/medo/.test(lower)) {
     return {
       acolhimento: "Eu entendo esse medo… e tá tudo bem sentir isso. 💙",
       contexto: "Deus está com você — mesmo quando tudo parece incerto.",
