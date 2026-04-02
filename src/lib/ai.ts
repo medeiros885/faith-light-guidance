@@ -15,38 +15,48 @@ function buildPrompt(message: string, userEmotion?: string | null): string {
     ? `O usuário está se sentindo: ${userEmotion}. Adapte o acolhimento a esse estado emocional.\n\n`
     : "";
 
-  return `${emotionLine}You are a Christian assistant.
-You must respond ONLY in valid JSON.
+  return `${emotionLine}
+Você é um assistente cristão do app Caminho Vivo.
 
-Do not include any text outside JSON.
-Do not include markdown.
-Do not explain anything outside the JSON.
+Responda SEMPRE em português do Brasil.
+Você DEVE retornar APENAS JSON válido.
+Não use markdown.
+Não escreva explicações fora do JSON.
+Não use crases.
+Não adicione texto antes ou depois.
 
-Return EXACTLY this structure:
-
+Retorne EXATAMENTE esta estrutura:
 {
   "acolhimento": "mensagem acolhedora",
   "contexto": "contexto bíblico claro",
   "explicacao": "explicação simples",
   "aplicacao": "como aplicar na vida",
-  "versiculos": ["1 versículo bíblico"],
+  "versiculos": ["1 ou 2 versículos bíblicos"],
   "oracao": "oração curta",
   "followUp": "pergunta para continuar a conversa"
 }
 
-All content must be in Portuguese (Brasil).
+Regras:
+- Se a pergunta for factual, responda corretamente.
+- Se for emocional, comece com empatia.
+- Se for teológica, explique com coerência bíblica.
+- Não seja genérico.
+- Não repita respostas.
+- Nunca invente referência bíblica.
 
-If you do not follow this format, the response will be rejected.
-
-User message: "${message}"`;
+Pergunta do usuário:
+${message}
+`.trim();
 }
 
 function plainTextToBibleResponse(text: string, message: string): BibleResponse {
+  const cleaned = text.trim();
+
   return {
-    acolhimento: "Que bom que você trouxe essa questão!",
-    contexto: text.slice(0, 300) || FALLBACK.contexto,
-    explicacao: text.slice(300, 700) || FALLBACK.explicacao,
-    aplicacao: FALLBACK.aplicacao,
+    acolhimento: "Obrigado por compartilhar isso comigo.",
+    contexto: cleaned.slice(0, 220) || FALLBACK.contexto,
+    explicacao: cleaned.slice(0, 420) || FALLBACK.explicacao,
+    aplicacao: "Reserve um momento para refletir sobre isso em oração e volte se quiser aprofundar.",
     versiculos: FALLBACK.versiculos,
     oracao: FALLBACK.oracao,
     followUp: `Quer aprofundar mais sobre "${message}"?`,
@@ -54,77 +64,140 @@ function plainTextToBibleResponse(text: string, message: string): BibleResponse 
 }
 
 function extractAndParseJSON(raw: string): Partial<BibleResponse> | null {
+  if (!raw) return null;
+
+  // 1) JSON direto
   try {
     return JSON.parse(raw) as Partial<BibleResponse>;
-  } catch { /* not direct JSON */ }
-
-  const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenceMatch) {
-    try {
-      return JSON.parse(fenceMatch[1].trim()) as Partial<BibleResponse>;
-    } catch { /* not valid JSON inside fence */ }
+  } catch {
+    // segue
   }
 
+  // 2) JSON dentro de markdown fence
+  const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch?.[1]) {
+    try {
+      return JSON.parse(fenceMatch[1].trim()) as Partial<BibleResponse>;
+    } catch {
+      // segue
+    }
+  }
+
+  // 3) Primeiro objeto {...} encontrado
   const braceMatch = raw.match(/\{[\s\S]*\}/);
-  if (braceMatch) {
+  if (braceMatch?.[0]) {
     try {
       return JSON.parse(braceMatch[0]) as Partial<BibleResponse>;
-    } catch { /* still not valid */ }
+    } catch {
+      // segue
+    }
   }
 
   return null;
 }
 
 function buildResult(parsed: Partial<BibleResponse>): BibleResponse {
+  const versiculos =
+    Array.isArray(parsed.versiculos) && parsed.versiculos.length > 0
+      ? parsed.versiculos.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      : FALLBACK.versiculos;
+
   return {
-    acolhimento: typeof parsed.acolhimento === "string" && parsed.acolhimento
-      ? parsed.acolhimento : FALLBACK.acolhimento,
-    contexto: typeof parsed.contexto === "string" && parsed.contexto
-      ? parsed.contexto : FALLBACK.contexto,
-    explicacao: typeof parsed.explicacao === "string" && parsed.explicacao
-      ? parsed.explicacao : FALLBACK.explicacao,
-    aplicacao: typeof parsed.aplicacao === "string" && parsed.aplicacao
-      ? parsed.aplicacao : FALLBACK.aplicacao,
-    versiculos: Array.isArray(parsed.versiculos) && parsed.versiculos.length > 0
-      ? parsed.versiculos.filter((v) => typeof v === "string")
-      : FALLBACK.versiculos,
-    oracao: typeof parsed.oracao === "string" && parsed.oracao
-      ? parsed.oracao : FALLBACK.oracao,
-    followUp: typeof parsed.followUp === "string" && parsed.followUp
-      ? parsed.followUp : FALLBACK.followUp,
+    acolhimento:
+      typeof parsed.acolhimento === "string" && parsed.acolhimento.trim()
+        ? parsed.acolhimento.trim()
+        : FALLBACK.acolhimento,
+    contexto:
+      typeof parsed.contexto === "string" && parsed.contexto.trim()
+        ? parsed.contexto.trim()
+        : FALLBACK.contexto,
+    explicacao:
+      typeof parsed.explicacao === "string" && parsed.explicacao.trim()
+        ? parsed.explicacao.trim()
+        : FALLBACK.explicacao,
+    aplicacao:
+      typeof parsed.aplicacao === "string" && parsed.aplicacao.trim()
+        ? parsed.aplicacao.trim()
+        : FALLBACK.aplicacao,
+    versiculos,
+    oracao:
+      typeof parsed.oracao === "string" && parsed.oracao.trim()
+        ? parsed.oracao.trim()
+        : FALLBACK.oracao,
+    followUp:
+      typeof parsed.followUp === "string" && parsed.followUp.trim()
+        ? parsed.followUp.trim()
+        : FALLBACK.followUp,
   };
 }
 
 async function callGemini(prompt: string, apiKey: string, attempt: number): Promise<string | null> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const endpoint =
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-  console.log(`[AI] Attempt ${attempt}: sending request to Gemini 1.5 Flash...`);
+  console.log(`[AI] Attempt ${attempt}: sending request to Gemini...`);
 
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [
+        {
+          parts: [{ text: prompt }],
+        },
+      ],
       generationConfig: {
-        temperature: 0.7,
+        temperature: 0.6,
         topK: 40,
         topP: 0.95,
         maxOutputTokens: 1024,
-        response_mime_type: "application/json",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            acolhimento: { type: "STRING" },
+            contexto: { type: "STRING" },
+            explicacao: { type: "STRING" },
+            aplicacao: { type: "STRING" },
+            versiculos: {
+              type: "ARRAY",
+              items: { type: "STRING" },
+            },
+            oracao: { type: "STRING" },
+            followUp: { type: "STRING" },
+          },
+          required: [
+            "acolhimento",
+            "contexto",
+            "explicacao",
+            "aplicacao",
+            "versiculos",
+            "oracao",
+            "followUp",
+          ],
+        },
       },
     }),
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error(`[AI] Attempt ${attempt}: Gemini API error ${response.status} ${response.statusText}:`, errText);
+    console.error(
+      `[AI] Attempt ${attempt}: Gemini API error ${response.status} ${response.statusText}:`,
+      errText
+    );
     return null;
   }
 
   const data = await response.json();
-  console.log(`[AI] Attempt ${attempt}: full response:`, JSON.stringify(data));
+  console.log(`[AI] Attempt ${attempt}: full response:`, data);
 
-  const rawText: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  const rawText: string =
+    data?.candidates?.[0]?.content?.parts?.[0]?.text ??
+    "";
+
   console.log(`[AI] Attempt ${attempt}: raw text:`, rawText);
 
   return rawText || null;
@@ -134,7 +207,12 @@ export async function generateAIResponse(
   message: string,
   userEmotion?: string | null
 ): Promise<BibleResponse> {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+
+  console.log("[AI] key exists?", Boolean(apiKey));
+  console.log("[AI] message:", message);
+  console.log("[AI] userEmotion:", userEmotion);
+  console.log("[AI] key prefix:", apiKey ? apiKey.slice(0, 6) : "none");
 
   if (!apiKey) {
     console.error("[AI] VITE_GEMINI_API_KEY is not set.");
@@ -144,7 +222,7 @@ export async function generateAIResponse(
   const prompt = buildPrompt(message, userEmotion);
 
   try {
-    // Attempt 1
+    // tentativa 1
     const rawText1 = await callGemini(prompt, apiKey, 1);
 
     if (rawText1) {
@@ -153,10 +231,11 @@ export async function generateAIResponse(
         console.log("[AI] Attempt 1: parsed successfully.");
         return buildResult(parsed1);
       }
+
       console.warn("[AI] Attempt 1: response was not valid JSON. Retrying...");
     }
 
-    // Attempt 2 (automatic retry)
+    // tentativa 2
     const rawText2 = await callGemini(prompt, apiKey, 2);
 
     if (rawText2) {
@@ -165,6 +244,7 @@ export async function generateAIResponse(
         console.log("[AI] Attempt 2: parsed successfully.");
         return buildResult(parsed2);
       }
+
       console.warn("[AI] Attempt 2: still not valid JSON. Converting plain text.");
       return plainTextToBibleResponse(rawText2, message);
     }

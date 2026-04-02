@@ -87,6 +87,13 @@ const Index = () => {
   const [headerPhrase] = useState(
     () => loadingHeaderPhrases[Math.floor(Math.random() * loadingHeaderPhrases.length)]
   );
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
+  const addDebug = useCallback((msg: string) => {
+    const line = `${new Date().toLocaleTimeString("pt-BR")} ${msg}`;
+    console.log("[DEBUG PANEL]", line);
+    setDebugLog((prev) => [...prev.slice(-29), line]);
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -207,11 +214,18 @@ const Index = () => {
       setInput("");
 
       try {
+        const keyExists = Boolean(import.meta.env.VITE_GEMINI_API_KEY);
+        addDebug(`API key: ${keyExists ? "✓ exists" : "✗ MISSING"}`);
+        addDebug(`Sending to AI: "${question.slice(0, 60)}${question.length > 60 ? "…" : ""}"`);
         console.log("SENDING TO AI:", question);
-        const raw = await generateAIResponse(question, userEmotion);
+
+        const raw = await generateAIResponse(question, userEmotion, addDebug);
         console.log("AI RESPONSE RECEIVED:", raw);
 
-        const safeResponse: BibleResponse = isBibleResponse(raw)
+        const isValid = isBibleResponse(raw);
+        addDebug(`Response valid: ${isValid ? "✓ yes" : "✗ no — fallback used"}`);
+
+        const safeResponse: BibleResponse = isValid
           ? raw
           : (() => {
               console.warn("AI response failed validation, using fallback. raw was:", raw);
@@ -226,6 +240,8 @@ const Index = () => {
           )
         );
       } catch (error) {
+        const errMsg = String(error);
+        addDebug(`Error caught: ${errMsg.slice(0, 100)}`);
         console.error("Erro ao gerar resposta da IA:", error);
 
         setChatHistory((prev) =>
@@ -241,10 +257,11 @@ const Index = () => {
         setIsLoading(false);
       }
     },
-    [recordInteraction, userEmotion]
+    [recordInteraction, userEmotion, addDebug]
   );
 
   const handleSubmit = (question: string) => {
+    addDebug(`handleSubmit: "${question.slice(0, 50)}" | loading: ${isLoading}`);
     console.log("handleSubmit called with:", question, "| isLoading:", isLoading);
     if (!question.trim() || isLoading) return;
     void requestAIResponse(question, screen === "chat");
@@ -724,6 +741,36 @@ const Index = () => {
       <AnimatePresence>
         {showGuidedCalm && <GuidedCalm onClose={() => setShowGuidedCalm(false)} />}
       </AnimatePresence>
+
+      {import.meta.env.DEV && (
+        <div className="fixed bottom-0 left-0 right-0 z-[9999] max-h-48 overflow-y-auto border-t border-white/10 bg-black/95 px-3 py-2 font-mono text-[10px] leading-5">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="font-bold text-yellow-400">🔧 AI Debug Panel (dev only)</span>
+            <button
+              onClick={() => setDebugLog([])}
+              className="text-gray-500 hover:text-white"
+            >
+              clear
+            </button>
+          </div>
+          {debugLog.length === 0 ? (
+            <div className="text-gray-600">No activity yet — send a message to start.</div>
+          ) : (
+            debugLog.map((line, i) => {
+              const color =
+                line.includes("✓") ? "text-green-400" :
+                line.includes("✗") || line.includes("MISSING") || line.includes("failed") || line.includes("Error") ? "text-red-400" :
+                line.includes("Retry") || line.includes("warn") ? "text-yellow-300" :
+                "text-gray-300";
+              return (
+                <div key={i} className={color}>
+                  {line}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 };
