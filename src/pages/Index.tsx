@@ -207,10 +207,16 @@ const Index = () => {
       setInput("");
 
       try {
+        console.log("SENDING TO AI:", question);
         const raw = await generateAIResponse(question, userEmotion);
+        console.log("AI RESPONSE RECEIVED:", raw);
+
         const safeResponse: BibleResponse = isBibleResponse(raw)
           ? raw
-          : FALLBACK_RESPONSE;
+          : (() => {
+              console.warn("AI response failed validation, using fallback. raw was:", raw);
+              return FALLBACK_RESPONSE;
+            })();
 
         setChatHistory((prev) =>
           prev.map((entry, i) =>
@@ -239,6 +245,7 @@ const Index = () => {
   );
 
   const handleSubmit = (question: string) => {
+    console.log("handleSubmit called with:", question, "| isLoading:", isLoading);
     if (!question.trim() || isLoading) return;
     void requestAIResponse(question, screen === "chat");
   };
