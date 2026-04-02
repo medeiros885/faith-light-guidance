@@ -364,20 +364,20 @@ const Index = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.4 }}
-        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-20 floating-navbar rounded-3xl px-8 py-3.5 flex items-center gap-10"
+        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-20 floating-navbar rounded-3xl px-8 py-3.5 flex items-center gap-8"
         role="navigation"
         aria-label="Navegação principal"
       >
-        <button onClick={() => { setScreen("home"); setChatHistory([]); }} className={`flex flex-col items-center gap-1 transition-colors duration-200 ${screen === "home" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
-          <Home size={20} />
+        <button onClick={() => { setScreen("home"); setChatHistory([]); }} className={`flex flex-col items-center gap-1 transition-all duration-200 ${screen === "home" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
+          <Home size={19} />
           <span className="text-[9px] font-medium">Início</span>
         </button>
-        <button onClick={() => setScreen("bible")} className="flex flex-col items-center gap-1 text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200">
-          <BookOpen size={20} />
-          <span className="text-[9px] font-medium">Bíblia</span>
+        <button onClick={() => setScreen("bible")} className={`flex flex-col items-center gap-1 transition-all duration-200 ${screen === "bible" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
+          <BookOpen size={24} />
+          <span className="text-[10px] font-semibold">Bíblia</span>
         </button>
-        <button onClick={() => { setInput(""); setScreen("chat"); }} className={`flex flex-col items-center gap-1 transition-colors duration-200 ${screen === "chat" || screen === "help" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
-          <MessageCircle size={20} />
+        <button onClick={() => { setInput(""); setScreen("chat"); }} className={`flex flex-col items-center gap-1 transition-all duration-200 ${screen === "chat" || screen === "help" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
+          <MessageCircle size={19} />
           <span className="text-[9px] font-medium">Chat</span>
         </button>
       </motion.nav>
