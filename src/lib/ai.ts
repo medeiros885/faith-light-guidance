@@ -10,87 +10,168 @@ const FALLBACK: BibleResponse = {
   followUp: "Quer tentar perguntar de novo?",
 };
 
+function plainTextToBibleResponse(text: string, message: string): BibleResponse {
+  return {
+    acolhimento: "Que bom que você trouxe essa questão!",
+    contexto: text.slice(0, 300) || FALLBACK.contexto,
+    explicacao: text.slice(300, 700) || FALLBACK.explicacao,
+    aplicacao: FALLBACK.aplicacao,
+    versiculos: FALLBACK.versiculos,
+    oracao: FALLBACK.oracao,
+    followUp: `Quer aprofundar mais sobre "${message}"?`,
+  };
+}
+
+function extractAndParseJSON(raw: string): Partial<BibleResponse> | null {
+  // 1. Try parsing directly first
+  try {
+    return JSON.parse(raw) as Partial<BibleResponse>;
+  } catch {
+    // not direct JSON
+  }
+
+  // 2. Strip markdown code fences (```json ... ``` or ``` ... ```)
+  const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch) {
+    try {
+      return JSON.parse(fenceMatch[1].trim()) as Partial<BibleResponse>;
+    } catch {
+      // not valid JSON inside fence
+    }
+  }
+
+  // 3. Extract first { ... } block
+  const braceMatch = raw.match(/\{[\s\S]*\}/);
+  if (braceMatch) {
+    try {
+      return JSON.parse(braceMatch[0]) as Partial<BibleResponse>;
+    } catch {
+      // still not valid
+    }
+  }
+
+  return null;
+}
+
 export async function generateAIResponse(
   message: string,
   userEmotion?: string | null
 ): Promise<BibleResponse> {
   const emotionContext = userEmotion
-    ? `O usuário está se sentindo: ${userEmotion}. Leve isso em conta ao acolher e responder.`
+    ? `O usuário está se sentindo: ${userEmotion}. Adapte o acolhimento a esse estado emocional.`
     : "";
 
-  const prompt = `Você é um assistente bíblico cristão acolhedor, falando em Português do Brasil.
+  const prompt = `Você é um assistente bíblico cristão acolhedor, respondendo em Português do Brasil.
 ${emotionContext}
 
-Responda à seguinte mensagem do usuário com base nas Escrituras:
-"${message}"
+Pergunta do usuário: "${message}"
 
-Responda APENAS com um objeto JSON válido, sem texto antes ou depois, usando exatamente esta estrutura:
+INSTRUÇÕES OBRIGATÓRIAS:
+- Retorne APENAS um objeto JSON válido.
+- NÃO inclua markdown, blocos de código, ou texto fora do JSON.
+- NÃO use aspas simples — use APENAS aspas duplas.
+- Todos os valores devem ser strings (exceto "versiculos" que é array de strings).
+- Use exatamente estes campos, sem adicionar ou remover nenhum:
+
 {
-  "acolhimento": "Uma frase curta e calorosa de acolhimento ao usuário (1-2 frases)",
-  "contexto": "Contexto bíblico ou histórico relevante para a pergunta (2-4 frases)",
-  "explicacao": "Explicação clara e aprofundada sobre o tema com base na Bíblia (3-5 frases)",
-  "aplicacao": "Como aplicar esse ensinamento na vida prática hoje (2-3 frases)",
-  "versiculos": ["Referência 1 — texto do versículo", "Referência 2 — texto do versículo"],
-  "oracao": "Uma oração curta e pessoal relacionada ao tema (2-3 frases)",
-  "followUp": "Uma pergunta ou sugestão para continuar a conversa (1 frase)"
+  "acolhimento": "frase calorosa de acolhimento ao usuário (1-2 frases)",
+  "contexto": "contexto bíblico ou histórico relevante (2-4 frases)",
+  "explicacao": "explicação aprofundada com base nas Escrituras (3-5 frases)",
+  "aplicacao": "como aplicar esse ensinamento na vida prática hoje (2-3 frases)",
+  "versiculos": ["Referência — texto do versículo", "Referência — texto do versículo"],
+  "oracao": "oração curta e pessoal relacionada ao tema (2-3 frases)",
+  "followUp": "pergunta ou sugestão para continuar a conversa (1 frase)"
 }`;
 
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.error("[AI] VITE_GEMINI_API_KEY is not set.");
+    return FALLBACK;
+  }
+
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const requestBody = {
+      contents: [
+        {
+          parts: [{ text: prompt }],
         },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-          },
-        }),
-      }
-    );
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 1024,
+        response_mime_type: "application/json",
+      },
+    };
+
+    console.log("[AI] Sending request to Gemini 1.5 Flash...");
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
 
     if (!response.ok) {
-      console.error("Gemini API error:", response.status, response.statusText);
+      const errText = await response.text();
+      console.error("[AI] Gemini API error:", response.status, response.statusText, errText);
       return FALLBACK;
     }
 
     const data = await response.json();
+    console.log("[AI] Raw Gemini response:", JSON.stringify(data));
+
     const rawText: string =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("No JSON found in Gemini response:", rawText);
+    console.log("[AI] Raw text from Gemini:", rawText);
+
+    if (!rawText.trim()) {
+      console.error("[AI] Empty response from Gemini.");
       return FALLBACK;
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as Partial<BibleResponse>;
+    const parsed = extractAndParseJSON(rawText);
+
+    if (!parsed) {
+      console.warn("[AI] Could not parse JSON. Converting plain text to BibleResponse.");
+      return plainTextToBibleResponse(rawText, message);
+    }
+
+    console.log("[AI] Parsed response:", parsed);
 
     const result: BibleResponse = {
-      acolhimento: parsed.acolhimento || FALLBACK.acolhimento,
-      contexto: parsed.contexto || FALLBACK.contexto,
-      explicacao: parsed.explicacao || FALLBACK.explicacao,
-      aplicacao: parsed.aplicacao || FALLBACK.aplicacao,
+      acolhimento: typeof parsed.acolhimento === "string" && parsed.acolhimento
+        ? parsed.acolhimento
+        : FALLBACK.acolhimento,
+      contexto: typeof parsed.contexto === "string" && parsed.contexto
+        ? parsed.contexto
+        : FALLBACK.contexto,
+      explicacao: typeof parsed.explicacao === "string" && parsed.explicacao
+        ? parsed.explicacao
+        : FALLBACK.explicacao,
+      aplicacao: typeof parsed.aplicacao === "string" && parsed.aplicacao
+        ? parsed.aplicacao
+        : FALLBACK.aplicacao,
       versiculos:
         Array.isArray(parsed.versiculos) && parsed.versiculos.length > 0
-          ? parsed.versiculos
+          ? parsed.versiculos.filter((v) => typeof v === "string")
           : FALLBACK.versiculos,
-      oracao: parsed.oracao || FALLBACK.oracao,
-      followUp: parsed.followUp || FALLBACK.followUp,
+      oracao: typeof parsed.oracao === "string" && parsed.oracao
+        ? parsed.oracao
+        : FALLBACK.oracao,
+      followUp: typeof parsed.followUp === "string" && parsed.followUp
+        ? parsed.followUp
+        : FALLBACK.followUp,
     };
 
     return result;
   } catch (error) {
-    console.error("Erro ao conectar com a IA:", error);
+    console.error("[AI] Unexpected error:", error);
     return FALLBACK;
   }
 }
