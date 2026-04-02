@@ -34,6 +34,30 @@ import { generateAIResponse } from "@/services/ai";
 
 type Screen = "home" | "help" | "chat" | "bible";
 
+const FALLBACK_RESPONSE: BibleResponse = {
+  acolhimento: "Estou aqui com você.",
+  contexto: "Tive dificuldade para montar a resposta agora.",
+  explicacao: "Pode ter acontecido um erro temporário na conexão com a IA.",
+  aplicacao: "Tente enviar sua pergunta novamente em alguns segundos.",
+  versiculos: ["Salmos 46:1 — Deus é o nosso refúgio e fortaleza."],
+  oracao: "Senhor, traz paz e clareza neste momento. Amém.",
+  followUp: "Quer tentar perguntar de novo?",
+};
+
+function isBibleResponse(obj: unknown): obj is BibleResponse {
+  if (!obj || typeof obj !== "object") return false;
+  const r = obj as Partial<BibleResponse>;
+  return (
+    typeof r.acolhimento === "string" &&
+    typeof r.contexto === "string" &&
+    typeof r.explicacao === "string" &&
+    typeof r.aplicacao === "string" &&
+    Array.isArray(r.versiculos) &&
+    typeof r.oracao === "string" &&
+    typeof r.followUp === "string"
+  );
+}
+
 interface ChatEntry {
   question: string;
   response: BibleResponse | null;
@@ -183,39 +207,25 @@ const Index = () => {
       setInput("");
 
       try {
-        const response = await generateAIResponse(question, userEmotion);
+        const raw = await generateAIResponse(question, userEmotion);
+        const safeResponse: BibleResponse = isBibleResponse(raw)
+          ? raw
+          : FALLBACK_RESPONSE;
 
         setChatHistory((prev) =>
           prev.map((entry, i) =>
             i === prev.length - 1 && entry.response === null
-              ? { ...entry, response }
+              ? { ...entry, response: safeResponse }
               : entry
           )
         );
       } catch (error) {
         console.error("Erro ao gerar resposta da IA:", error);
 
-        const fallbackResponse: BibleResponse = {
-          acolhimento:
-            "Tive um problema para responder agora, mas continuo aqui com você.",
-          contexto:
-            "Às vezes acontece uma falha momentânea na conexão ou no serviço de resposta.",
-          explicacao:
-            "Sua pergunta não foi perdida. Só não consegui processá-la corretamente neste momento.",
-          aplicacao:
-            "Tente enviar novamente em alguns segundos. Se quiser, você também pode reformular a pergunta.",
-          versiculos: [
-            'Tiago 1:5 — "Se algum de vocês tem falta de sabedoria, peça-a a Deus..."',
-          ],
-          oracao:
-            "Senhor, dá paz ao meu coração e dirige essa conversa. Amém.",
-          followUp: "Quer tentar de novo agora?",
-        };
-
         setChatHistory((prev) =>
           prev.map((entry, i) =>
             i === prev.length - 1 && entry.response === null
-              ? { ...entry, response: fallbackResponse }
+              ? { ...entry, response: FALLBACK_RESPONSE }
               : entry
           )
         );
@@ -545,7 +555,7 @@ const Index = () => {
                         {i === chatHistory.length - 1 && (
                           <div className="mb-2 -mt-1 flex justify-start pl-2">
                             <ListenButton
-                              text={`${entry.response.acolhimento}. ${entry.response.explicacao}`}
+                              text={`${entry.response?.acolhimento ?? ""}. ${entry.response?.explicacao ?? ""}`}
                               size="sm"
                             />
                           </div>

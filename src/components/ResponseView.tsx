@@ -231,10 +231,10 @@ const ResponseView = ({ response, question }: ResponseViewProps) => {
             label="Versículos"
             accent="text-blue-200"
             className="border-blue-300/10 bg-[linear-gradient(180deg,rgba(11,46,91,0.58),rgba(4,11,22,0.84))]"
-            right={<ListenButton text={response.versiculos.join(". ")} size="sm" />}
+            right={<ListenButton text={Array.isArray(response.versiculos) ? response.versiculos.join(". ") : ""} size="sm" />}
           >
             <div className="space-y-3">
-              {response.versiculos.map((v, i) => (
+              {(Array.isArray(response.versiculos) ? response.versiculos : []).map((v, i) => (
                 <div
                   key={i}
                   className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
