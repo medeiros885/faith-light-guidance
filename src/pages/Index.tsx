@@ -44,20 +44,6 @@ const FALLBACK_RESPONSE: BibleResponse = {
   followUp: "Quer tentar perguntar de novo?",
 };
 
-function isBibleResponse(obj: unknown): obj is BibleResponse {
-  if (!obj || typeof obj !== "object") return false;
-  const r = obj as Partial<BibleResponse>;
-  return (
-    typeof r.acolhimento === "string" &&
-    typeof r.contexto === "string" &&
-    typeof r.explicacao === "string" &&
-    typeof r.aplicacao === "string" &&
-    Array.isArray(r.versiculos) &&
-    typeof r.oracao === "string" &&
-    typeof r.followUp === "string"
-  );
-}
-
 interface ChatEntry {
   question: string;
   response: BibleResponse | null;
@@ -222,15 +208,23 @@ const Index = () => {
         const raw = await generateAIResponse(question, userEmotion, addDebug);
         console.log("AI RESPONSE RECEIVED:", raw);
 
-        const isValid = isBibleResponse(raw);
-        addDebug(`Response valid: ${isValid ? "✓ yes" : "✗ no — fallback used"}`);
+        const safeResponse: BibleResponse = raw;
 
-        const safeResponse: BibleResponse = isValid
-          ? raw
-          : (() => {
-              console.warn("AI response failed validation, using fallback. raw was:", raw);
-              return FALLBACK_RESPONSE;
-            })();
+        const isExactFallback =
+          safeResponse.acolhimento === FALLBACK_RESPONSE.acolhimento &&
+          safeResponse.contexto === FALLBACK_RESPONSE.contexto &&
+          safeResponse.explicacao === FALLBACK_RESPONSE.explicacao &&
+          safeResponse.aplicacao === FALLBACK_RESPONSE.aplicacao &&
+          safeResponse.oracao === FALLBACK_RESPONSE.oracao &&
+          safeResponse.followUp === FALLBACK_RESPONSE.followUp &&
+          Array.isArray(safeResponse.versiculos) &&
+          safeResponse.versiculos.join(" | ") === FALLBACK_RESPONSE.versiculos.join(" | ");
+
+        addDebug(
+          isExactFallback
+            ? "Response valid: ✗ fallback returned"
+            : "Response valid: ✓ real response returned"
+        );
 
         setChatHistory((prev) =>
           prev.map((entry, i) =>
