@@ -1,6 +1,17 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff, Send, ArrowLeft, BookOpen, Heart, Home, MessageCircle } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  Send,
+  ArrowLeft,
+  BookOpen,
+  Heart,
+  Home,
+  MessageCircle,
+  Sparkles,
+} from "lucide-react";
+import { toast } from "sonner";
 import bibleLogo from "@/assets/bible-logo.png";
 import SuggestionCard from "@/components/SuggestionCard";
 import ResponseView from "@/components/ResponseView";
@@ -18,7 +29,8 @@ import GuidedCalm from "@/components/GuidedCalm";
 import FloatingBackground from "@/components/FloatingBackground";
 import ListenButton from "@/components/ListenButton";
 import { useDailyStreak } from "@/hooks/useDailyStreak";
-import { generateMockResponse, type BibleResponse } from "@/data/mockResponses";
+import type { BibleResponse } from "@/data/mockResponses";
+import { generateAIResponse } from "@/services/ai";
 
 type Screen = "home" | "help" | "chat" | "bible";
 
@@ -51,27 +63,28 @@ const Index = () => {
   const [headerPhrase] = useState(
     () => loadingHeaderPhrases[Math.floor(Math.random() * loadingHeaderPhrases.length)]
   );
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const handleSubmitRef = useRef<(q: string) => void>(() => {});
   const { streakCount, recordInteraction } = useDailyStreak();
 
-  // Save emotion to localStorage
   useEffect(() => {
     if (userEmotion) localStorage.setItem("cv-emotion", userEmotion);
   }, [userEmotion]);
+
   useEffect(() => {
     const saved = localStorage.getItem("cv-emotion") as UserEmotion;
     if (saved) setUserEmotion(saved);
   }, []);
 
-  useEffect(() => { recordInteraction(); }, [recordInteraction]);
+  useEffect(() => {
+    recordInteraction();
+  }, [recordInteraction]);
 
-  // Show guided calm suggestion when anxious
   useEffect(() => {
     if (userEmotion === "ansioso") {
-      // Small delay so user sees it naturally
       const t = setTimeout(() => setShowGuidedCalm(true), 1500);
       return () => clearTimeout(t);
     }
@@ -80,60 +93,146 @@ const Index = () => {
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
+
     const recognition = new SR();
     recognition.lang = "pt-BR";
     recognition.continuous = false;
     recognition.interimResults = true;
+
     recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results).map((r: any) => r[0].transcript).join("");
+      const transcript = Array.from(event.results)
+        .map((r: any) => r[0].transcript)
+        .join("");
+
       setInput(transcript);
+
       if (event.results[event.results.length - 1].isFinal) {
-        const finalText = Array.from(event.results).map((r: any) => r[0].transcript).join("");
+        const finalText = Array.from(event.results)
+          .map((r: any) => r[0].transcript)
+          .join("");
+
         setIsListening(false);
+
         if (finalText.trim()) {
           setVoiceStatus("processing");
-          setTimeout(() => { setVoiceStatus("idle"); handleSubmitRef.current(finalText); }, 1800);
+          setTimeout(() => {
+            setVoiceStatus("idle");
+            handleSubmitRef.current(finalText);
+          }, 1500);
         }
       }
     };
-    recognition.onerror = () => { setIsListening(false); setVoiceStatus("idle"); };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setVoiceStatus("idle");
+    };
+
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
-    return () => { recognition.abort(); };
+
+    return () => {
+      recognition.abort();
+    };
   }, []);
 
   const toggleListening = () => {
     if (!recognitionRef.current) return;
-    if (isListening) { recognitionRef.current.stop(); setIsListening(false); setVoiceStatus("idle"); }
-    else { setInput(""); setVoiceStatus("listening"); recognitionRef.current.start(); setIsListening(true); }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      setVoiceStatus("idle");
+    } else {
+      setInput("");
+      setVoiceStatus("listening");
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
   };
 
   const scrollToBottom = useCallback(() => {
-    setTimeout(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, 120);
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }, 120);
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [chatHistory, isLoading, scrollToBottom]);
-  useEffect(() => { if (screen === "chat") inputRef.current?.focus(); }, [screen]);
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory, isLoading, scrollToBottom]);
 
-  const simulateResponse = useCallback((question: string, append = true) => {
-    setIsLoading(true);
-    recordInteraction();
-    if (append) { setChatHistory((prev) => [...prev, { question, response: null }]); }
-    else { setChatHistory([{ question, response: null }]); }
-    setScreen("chat");
-    setInput("");
-    const delay = 1500 + Math.random() * 1000;
-    setTimeout(() => {
-      const response = generateMockResponse(question, userEmotion);
-      setChatHistory((prev) => prev.map((entry, i) => i === prev.length - 1 && entry.response === null ? { ...entry, response } : entry));
-      setIsLoading(false);
-    }, delay);
-  }, [recordInteraction, userEmotion]);
+  useEffect(() => {
+    if (screen === "chat") inputRef.current?.focus();
+  }, [screen]);
+
+  const requestAIResponse = useCallback(
+    async (question: string, append = true) => {
+      setIsLoading(true);
+      recordInteraction();
+
+      if (append) {
+        setChatHistory((prev) => [...prev, { question, response: null }]);
+      } else {
+        setChatHistory([{ question, response: null }]);
+      }
+
+      setScreen("chat");
+      setInput("");
+
+      try {
+        const response = await generateAIResponse(question, userEmotion);
+
+        setChatHistory((prev) =>
+          prev.map((entry, i) =>
+            i === prev.length - 1 && entry.response === null
+              ? { ...entry, response }
+              : entry
+          )
+        );
+      } catch (error) {
+        console.error("Erro ao gerar resposta da IA:", error);
+
+        const fallbackResponse: BibleResponse = {
+          acolhimento:
+            "Tive um problema para responder agora, mas continuo aqui com você.",
+          contexto:
+            "Às vezes acontece uma falha momentânea na conexão ou no serviço de resposta.",
+          explicacao:
+            "Sua pergunta não foi perdida. Só não consegui processá-la corretamente neste momento.",
+          aplicacao:
+            "Tente enviar novamente em alguns segundos. Se quiser, você também pode reformular a pergunta.",
+          versiculos: [
+            'Tiago 1:5 — "Se algum de vocês tem falta de sabedoria, peça-a a Deus..."',
+          ],
+          oracao:
+            "Senhor, dá paz ao meu coração e dirige essa conversa. Amém.",
+          followUp: "Quer tentar de novo agora?",
+        };
+
+        setChatHistory((prev) =>
+          prev.map((entry, i) =>
+            i === prev.length - 1 && entry.response === null
+              ? { ...entry, response: fallbackResponse }
+              : entry
+          )
+        );
+
+        toast.error("Não consegui responder agora. Tente novamente.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [recordInteraction, userEmotion]
+  );
 
   const handleSubmit = (question: string) => {
     if (!question.trim() || isLoading) return;
-    simulateResponse(question, screen === "chat");
+    void requestAIResponse(question, screen === "chat");
   };
+
   handleSubmitRef.current = handleSubmit;
 
   const handleHelpSelect = (label: string, response: BibleResponse) => {
@@ -141,11 +240,37 @@ const Index = () => {
     setChatHistory([{ question, response: null }]);
     setScreen("chat");
     setIsLoading(true);
-    setTimeout(() => { setChatHistory([{ question, response }]); setIsLoading(false); }, 1800);
+
+    setTimeout(() => {
+      setChatHistory([{ question, response }]);
+      setIsLoading(false);
+    }, 1500);
   };
 
-  const handleBack = () => { setScreen("home"); setChatHistory([]); setIsLoading(false); setVoiceStatus("idle"); };
-  const handleReflect = (verseText: string) => { recordInteraction(); simulateResponse(verseText, false); };
+  const handleBack = () => {
+    setScreen("home");
+    setChatHistory([]);
+    setIsLoading(false);
+    setVoiceStatus("idle");
+  };
+
+  const handleReflect = (verseText: string) => {
+    recordInteraction();
+    void requestAIResponse(verseText, false);
+  };
+
+  const getGreeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Bom dia ☀️";
+    if (h < 18) return "Boa tarde 🌤️";
+    return "Boa noite 🌙";
+  }, []);
+
+  const showFollowUp =
+    screen === "chat" &&
+    !isLoading &&
+    chatHistory.length > 0 &&
+    chatHistory[chatHistory.length - 1].response !== null;
 
   if (screen === "bible") {
     return (
@@ -156,86 +281,141 @@ const Index = () => {
     );
   }
 
-  const getGreeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return "Bom dia ☀️";
-    if (h < 18) return "Boa tarde 🌤️";
-    return "Boa noite 🌙";
-  };
-
-  const showFollowUp = screen === "chat" && !isLoading && chatHistory.length > 0 && chatHistory[chatHistory.length - 1].response !== null;
-
   return (
     <div className="relative flex min-h-[100dvh] flex-col">
       <FloatingBackground />
 
-      {/* Chat header */}
       <AnimatePresence>
         {screen === "chat" && (
           <motion.header
-            initial={{ opacity: 0, y: -16 }}
+            initial={{ opacity: 0, y: -14 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            className="sticky top-0 z-10 flex items-center gap-3 border-b border-border/10 bg-background/80 px-5 py-3 backdrop-blur-2xl"
+            exit={{ opacity: 0, y: -14 }}
+            className="sticky top-0 z-10 border-b border-border/10 bg-background/78 backdrop-blur-2xl"
           >
-            <motion.button whileTap={{ scale: 0.88 }} onClick={handleBack}
-              className="rounded-full p-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground hover:bg-secondary/40">
-              <ArrowLeft size={18} />
-            </motion.button>
-            <img src={bibleLogo} alt="" className="h-7 w-7 opacity-85" />
-            <div className="flex flex-col">
-              <span className="font-display text-sm font-semibold text-gold">Caminho Vivo</span>
-              <AnimatePresence mode="wait">
-                {isLoading ? (
-                  <motion.span key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="text-[10px] italic text-blue-calm">{headerPhrase}</motion.span>
-                ) : (
-                  <motion.span key="online" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    className="text-[10px] text-muted-foreground/40">online</motion.span>
-                )}
-              </AnimatePresence>
+            <div className="mx-auto flex max-w-lg items-center gap-3 px-5 py-3">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleBack}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-muted-foreground transition-all duration-200 hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground"
+              >
+                <ArrowLeft size={18} />
+              </motion.button>
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/10 bg-gold/8 shadow-[0_0_18px_rgba(255,215,102,0.05)]">
+                <img src={bibleLogo} alt="" className="h-5 w-5 opacity-90" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-display text-sm font-semibold text-gold">
+                    Caminho Vivo
+                  </span>
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400/80" />
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {isLoading ? (
+                    <motion.span
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="block truncate text-[10px] italic text-blue-calm"
+                    >
+                      {headerPhrase}
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="online"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="block text-[10px] text-muted-foreground/42"
+                    >
+                      online
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </motion.header>
         )}
       </AnimatePresence>
 
-      {/* Content */}
-      <div ref={scrollRef} className="relative z-[1] flex-1 overflow-y-auto scroll-smooth pb-24">
+      <div
+        ref={scrollRef}
+        className="relative z-[1] flex-1 overflow-y-auto scroll-smooth pb-24"
+      >
         <div className="mx-auto max-w-lg px-5">
           <AnimatePresence mode="wait">
-            {/* ── HOME ── */}
             {screen === "home" && (
               <motion.div
                 key="home"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col items-center pb-32 pt-12 gap-8"
+                transition={{ duration: 0.45 }}
+                className="flex flex-col items-center gap-8 pb-32 pt-10"
               >
-                {/* Logo + Streak */}
-                <motion.div className="flex flex-col items-center gap-3"
-                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, ease: "easeOut" }}>
-                  <img src={bibleLogo} alt="Caminho Vivo" width={48} height={48}
-                    className="drop-shadow-[0_0_20px_hsl(43_55%_52%/0.12)]" />
-                  <h1 className="font-display text-[22px] font-bold text-gold tracking-wide">Caminho Vivo</h1>
-                  <StreakBadge count={streakCount} />
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.65, ease: "easeOut" }}
+                  className="w-full"
+                >
+                  <div className="glass-card rounded-[32px] px-6 py-6 text-center">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-gold/10 bg-gold/8 shadow-[0_0_24px_rgba(255,215,102,0.05)]">
+                      <img
+                        src={bibleLogo}
+                        alt="Caminho Vivo"
+                        width={34}
+                        height={34}
+                        className="opacity-95"
+                      />
+                    </div>
+
+                    <div className="mb-3 flex justify-center">
+                      <StreakBadge count={streakCount} />
+                    </div>
+
+                    <h1 className="font-display text-[26px] font-semibold tracking-[0.01em] text-foreground/96">
+                      Caminho Vivo
+                    </h1>
+
+                    <p className="mt-2 text-sm font-medium text-foreground/86">
+                      {getGreeting}
+                    </p>
+
+                    <p className="mx-auto mt-2 max-w-[280px] text-[13px] leading-6 text-muted-foreground/52">
+                      Um lugar de direção, consolo e reflexão bíblica para o seu dia.
+                    </p>
+                  </div>
                 </motion.div>
 
-                {/* Greeting */}
-                <motion.div className="w-full text-center space-y-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  transition={{ delay: 0.15, duration: 0.6 }}>
-                  <p className="text-lg font-medium text-foreground/90">{getGreeting()}</p>
-                  <p className="text-sm text-muted-foreground/55">Como está seu coração agora?</p>
+                <motion.div
+                  className="w-full space-y-3"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1, duration: 0.45 }}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/10 text-blue-200">
+                      <Sparkles size={13} strokeWidth={1.8} />
+                    </div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/58">
+                      Como está seu coração agora?
+                    </p>
+                  </div>
+
+                  <EmotionSelector selected={userEmotion} onSelect={setUserEmotion} />
                 </motion.div>
 
-                {/* Emotion selector */}
-                <EmotionSelector selected={userEmotion} onSelect={setUserEmotion} />
-
-                {/* Glass input */}
-                <motion.div className="w-full" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35, duration: 0.5 }}>
+                <motion.div
+                  className="w-full"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18, duration: 0.45 }}
+                >
                   <div className="relative">
                     <input
                       value={input}
@@ -243,62 +423,81 @@ const Index = () => {
                       onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
                       placeholder="Escreva ou fale… Deus está ouvindo com você"
                       aria-label="Escreva sua mensagem"
-                      className="w-full rounded-2xl home-input-glass breathing-border px-5 py-4 pr-24 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
+                      className="home-input-glass breathing-border w-full rounded-[26px] px-5 py-4 pr-24 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
                     />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      <motion.button onClick={toggleListening} whileTap={{ scale: 0.85 }}
-                        animate={isListening ? { scale: [1, 1.1, 1] } : { scale: 1 }}
-                        transition={isListening ? { duration: 1.5, repeat: Infinity } : { duration: 0.2 }}
+
+                    <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                      <motion.button
+                        onClick={toggleListening}
+                        whileTap={{ scale: 0.88 }}
+                        animate={isListening ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                        transition={
+                          isListening
+                            ? { duration: 1.4, repeat: Infinity }
+                            : { duration: 0.2 }
+                        }
                         aria-label={isListening ? "Parar gravação" : "Gravar voz"}
-                        className={`rounded-full p-2.5 transition-all duration-200 ${
-                          isListening ? "bg-[hsl(var(--gold)/0.15)] text-gold" : "text-gold/40 hover:text-gold/70"
-                        }`}>
+                        className={`flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${
+                          isListening
+                            ? "bg-[hsl(var(--gold)/0.14)] text-gold"
+                            : "text-gold/42 hover:text-gold/72"
+                        }`}
+                      >
                         {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                       </motion.button>
-                      <motion.button onClick={() => handleSubmit(input)} disabled={!input.trim() || isLoading}
-                        whileTap={{ scale: 0.85 }}
+
+                      <motion.button
+                        onClick={() => handleSubmit(input)}
+                        disabled={!input.trim() || isLoading}
+                        whileTap={{ scale: 0.88 }}
                         aria-label="Enviar mensagem"
-                        className="rounded-full bg-gold p-2.5 text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-15"
-                        style={{ boxShadow: "0 2px 14px hsl(43 55% 52% / 0.18)" }}>
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-gold text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-15"
+                        style={{ boxShadow: "0 8px 18px hsl(43 74% 64% / 0.14)" }}
+                      >
                         <Send size={16} />
                       </motion.button>
                     </div>
                   </div>
+
                   <AnimatePresence>
                     {isListening && (
-                      <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        className="text-center text-[11px] italic text-blue-calm mt-2">
+                      <motion.p
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="mt-2 text-center text-[11px] italic text-blue-calm"
+                      >
                         Pode falar, estou aqui 💙
                       </motion.p>
                     )}
                   </AnimatePresence>
                 </motion.div>
 
-                {/* Daily message */}
-                <DailyMessage />
+                <div className="w-full space-y-4">
+                  <DailyMessage />
+                  <DailyVerseCard onReflect={handleReflect} />
+                </div>
 
-                {/* Daily verse */}
-                <DailyVerseCard onReflect={handleReflect} />
-
-                {/* Quick actions */}
                 <div className="w-full">
                   <QuickActions onAction={handleSubmit} />
                 </div>
 
-                {/* Help button */}
-                <motion.button whileTap={{ scale: 0.97 }} onClick={() => setScreen("help")}
-                  className="w-full rounded-2xl gold-highlight-btn px-6 py-[18px] text-[15px] font-semibold text-foreground/90"
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5, duration: 0.45 }}>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setScreen("help")}
+                  className="gold-highlight-btn w-full rounded-[24px] px-6 py-[18px] text-[15px] font-semibold text-foreground/92"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.32, duration: 0.4 }}
+                >
                   <span className="flex items-center justify-center gap-2.5">
-                    <Heart size={17} className="text-gold/65" strokeWidth={2} />
+                    <Heart size={17} className="text-gold/70" strokeWidth={2} />
                     💛 Preciso de ajuda hoje
                   </span>
                 </motion.button>
 
-                {/* Suggestions */}
-                <div className="w-full space-y-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/30 px-1">
+                <div className="w-full space-y-2.5">
+                  <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/30">
                     Perguntas frequentes
                   </p>
                   {suggestions.map((s, i) => (
@@ -306,34 +505,45 @@ const Index = () => {
                   ))}
                 </div>
 
-                {/* Brand */}
-                <motion.p className="text-[11px] text-muted-foreground/25 italic tracking-wide"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+                <motion.p
+                  className="text-[11px] italic tracking-wide text-muted-foreground/28"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.65 }}
+                >
                   Você não precisa caminhar sozinho. 💙
                 </motion.p>
               </motion.div>
             )}
 
-            {/* ── HELP ── */}
             {screen === "help" && (
-              <motion.div key="help" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.35 }} className="py-8">
+              <motion.div
+                key="help"
+                initial={{ opacity: 0, x: 14 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -14 }}
+                transition={{ duration: 0.3 }}
+                className="py-8"
+              >
                 <HelpTopics onSelect={handleHelpSelect} onBack={handleBack} />
               </motion.div>
             )}
 
-            {/* ── CHAT ── */}
             {screen === "chat" && (
-              <motion.div key="chat" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }} className="py-4 space-y-1">
+              <motion.div
+                key="chat"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.26 }}
+                className="space-y-1 py-4"
+              >
                 {chatHistory.map((entry, i) => (
                   <div key={i}>
                     {entry.response ? (
                       <div>
                         <ResponseView question={entry.question} response={entry.response} />
-                        {/* Listen button for the last response */}
                         {i === chatHistory.length - 1 && (
-                          <div className="flex justify-start pl-2 -mt-1 mb-2">
+                          <div className="mb-2 -mt-1 flex justify-start pl-2">
                             <ListenButton
                               text={`${entry.response.acolhimento}. ${entry.response.explicacao}`}
                               size="sm"
@@ -342,88 +552,158 @@ const Index = () => {
                         )}
                       </div>
                     ) : (
-                      <div className="flex justify-end mb-2">
-                        <motion.div initial={{ opacity: 0, scale: 0.93, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                          className="max-w-[75%] rounded-2xl rounded-tr-sm user-bubble px-4 py-3 text-sm leading-relaxed text-foreground/85">
+                      <div className="mb-2 flex justify-end">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.94, y: 6 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          className="user-bubble max-w-[76%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed text-foreground/86"
+                        >
                           {entry.question}
                         </motion.div>
                       </div>
                     )}
                   </div>
                 ))}
+
                 <AnimatePresence>{isLoading && <TypingIndicator />}</AnimatePresence>
-                {showFollowUp && <FollowUpButtons onAction={(text) => handleSubmit(text)} />}
+
+                {showFollowUp && (
+                  <FollowUpButtons onAction={(text) => handleSubmit(text)} />
+                )}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* ── FIXED BOTTOM NAVBAR ── */}
-      <motion.nav
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, duration: 0.4 }}
-        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-20 floating-navbar rounded-3xl px-8 py-3.5 flex items-center gap-8"
-        role="navigation"
-        aria-label="Navegação principal"
-      >
-        <button onClick={() => { setScreen("home"); setChatHistory([]); }} className={`flex flex-col items-center gap-1 transition-all duration-200 ${screen === "home" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
-          <Home size={19} />
-          <span className="text-[9px] font-medium">Início</span>
-        </button>
-        <button onClick={() => setScreen("bible")} className={`flex flex-col items-center gap-1 transition-all duration-200 ${screen === "bible" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
-          <BookOpen size={24} />
-          <span className="text-[10px] font-semibold">Bíblia</span>
-        </button>
-        <button onClick={() => { setInput(""); setScreen("chat"); }} className={`flex flex-col items-center gap-1 transition-all duration-200 ${screen === "chat" || screen === "help" ? "text-gold" : "text-muted-foreground/50 hover:text-foreground/70"}`}>
-          <MessageCircle size={19} />
-          <span className="text-[9px] font-medium">Chat</span>
-        </button>
-      </motion.nav>
+      {screen !== "chat" && screen !== "help" && (
+        <motion.nav
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.48, duration: 0.35 }}
+          className="floating-navbar fixed bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-10 rounded-[30px] px-8 py-3.5"
+          role="navigation"
+          aria-label="Navegação principal"
+        >
+          <button
+            onClick={() => {
+              setScreen("home");
+              setChatHistory([]);
+            }}
+            className={`flex flex-col items-center gap-1 transition-colors duration-200 ${
+              screen === "home"
+                ? "text-gold"
+                : "text-muted-foreground/50 hover:text-foreground/72"
+            }`}
+          >
+            <Home size={20} />
+            <span className="text-[9px] font-medium">Início</span>
+          </button>
 
-      {/* ── INPUT BAR (chat/help) ── */}
+          <button
+            onClick={() => setScreen("bible")}
+            className={`flex flex-col items-center gap-1 transition-colors duration-200 ${
+              screen === "bible"
+                ? "text-gold"
+                : "text-muted-foreground/50 hover:text-foreground/72"
+            }`}
+          >
+            <BookOpen size={20} />
+            <span className="text-[9px] font-medium">Bíblia</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setInput("");
+              setScreen("chat");
+            }}
+            className={`flex flex-col items-center gap-1 transition-colors duration-200 ${
+              screen === "chat" || screen === "help"
+                ? "text-gold"
+                : "text-muted-foreground/50 hover:text-foreground/72"
+            }`}
+          >
+            <MessageCircle size={20} />
+            <span className="text-[9px] font-medium">Chat</span>
+          </button>
+        </motion.nav>
+      )}
+
       {(screen === "chat" || screen === "help") && (
-        <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border/10 bg-background/85 px-4 pb-[env(safe-area-inset-bottom,16px)] pt-2.5 backdrop-blur-2xl">
+        <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border/10 bg-background/82 px-4 pb-[env(safe-area-inset-bottom,16px)] pt-2.5 backdrop-blur-2xl">
           <AnimatePresence>
             {(isListening || voiceStatus === "processing") && (
-              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
-                className="mx-auto mb-2 max-w-lg text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                className="mx-auto mb-2 max-w-lg text-center"
+              >
                 <span className="text-xs italic text-blue-calm">
-                  {isListening ? "Pode falar, estou aqui 💙" : "Entendi... deixa eu te responder 💙"}
+                  {isListening
+                    ? "Pode falar, estou aqui 💙"
+                    : "Entendi... deixa eu te responder 💙"}
                 </span>
               </motion.div>
             )}
           </AnimatePresence>
+
           <div className="mx-auto flex max-w-lg items-center gap-2">
-            <motion.button onClick={toggleListening}
-              animate={isListening ? { scale: [1, 1.08, 1], boxShadow: ["0 0 0px hsl(213 55% 68% / 0)", "0 0 18px hsl(213 55% 68% / 0.2)", "0 0 0px hsl(213 55% 68% / 0)"] } : { scale: 1 }}
-              transition={isListening ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
-              whileTap={{ scale: 0.88 }}
+            <motion.button
+              onClick={toggleListening}
+              animate={
+                isListening
+                  ? {
+                      scale: [1, 1.08, 1],
+                      boxShadow: [
+                        "0 0 0px hsl(213 55% 68% / 0)",
+                        "0 0 18px hsl(213 55% 68% / 0.2)",
+                        "0 0 0px hsl(213 55% 68% / 0)",
+                      ],
+                    }
+                  : { scale: 1 }
+              }
+              transition={
+                isListening
+                  ? { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                  : { duration: 0.2 }
+              }
+              whileTap={{ scale: 0.9 }}
               aria-label={isListening ? "Parar gravação" : "Gravar voz"}
-              className={`flex-shrink-0 rounded-full p-2.5 transition-all duration-200 ${
-                isListening ? "bg-[hsl(var(--blue-soft)/0.12)] text-blue-calm" : "text-muted-foreground/45 hover:text-foreground/65 hover:bg-secondary/30"
-              }`}>
+              className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
+                isListening
+                  ? "bg-[hsl(var(--blue-soft)/0.12)] text-blue-calm"
+                  : "text-muted-foreground/45 hover:bg-secondary/30 hover:text-foreground/68"
+              }`}
+            >
               {isListening ? <MicOff size={19} /> : <Mic size={19} />}
             </motion.button>
-            <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
+
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
               placeholder={isListening ? "Ouvindo..." : "Escreva ou fale…"}
               aria-label="Campo de mensagem"
-              className="flex-1 rounded-full input-field px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
-              readOnly={isListening} />
-            <motion.button onClick={() => handleSubmit(input)} disabled={!input.trim() || isLoading}
-              whileTap={{ scale: 0.85 }}
+              className="input-field flex-1 rounded-full px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
+              readOnly={isListening}
+            />
+
+            <motion.button
+              onClick={() => handleSubmit(input)}
+              disabled={!input.trim() || isLoading}
+              whileTap={{ scale: 0.88 }}
               aria-label="Enviar"
-              className="flex-shrink-0 rounded-full bg-gold p-2.5 text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-10"
-              style={{ boxShadow: "0 2px 12px hsl(43 55% 52% / 0.15)" }}>
+              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gold text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-10"
+              style={{ boxShadow: "0 8px 18px hsl(43 74% 64% / 0.14)" }}
+            >
               <Send size={17} />
             </motion.button>
           </div>
         </div>
       )}
 
-      {/* Guided calm overlay */}
       <AnimatePresence>
         {showGuidedCalm && <GuidedCalm onClose={() => setShowGuidedCalm(false)} />}
       </AnimatePresence>

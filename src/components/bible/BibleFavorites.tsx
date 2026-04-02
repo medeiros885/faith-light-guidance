@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Heart, Sparkles, Trash2 } from "lucide-react";
+import { Heart, Trash2, Quote, Wand2, Bookmark } from "lucide-react";
 import type { useFavoriteVerses } from "@/hooks/useFavoriteVerses";
 
 interface BibleFavoritesProps {
@@ -12,52 +12,104 @@ const BibleFavorites = ({ favoriteHook, onReflect }: BibleFavoritesProps) => {
 
   if (favorites.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Heart size={32} className="text-muted-foreground/20 mb-3" />
-        <p className="text-sm text-muted-foreground/60">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-center justify-center py-20 text-center"
+      >
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] text-muted-foreground/28 shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
+          <Heart size={22} />
+        </div>
+
+        <p className="text-sm font-medium text-foreground/76">
           Nenhum versículo salvo ainda
         </p>
-        <p className="text-xs text-muted-foreground/40 mt-1">
-          Toque no ❤️ em qualquer versículo para salvar
+        <p className="mt-2 max-w-[260px] text-[12px] leading-5 text-muted-foreground/42">
+          Toque no coração em qualquer versículo para criar sua coleção de favoritos.
         </p>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground/50 mb-3">
-        {favorites.length} versículo{favorites.length !== 1 ? "s" : ""} salvo{favorites.length !== 1 ? "s" : ""}
-      </p>
+    <div className="space-y-3.5 pb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card rounded-[24px] px-4 py-3.5"
+      >
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full border border-gold/10 bg-gold/8 text-gold/78 shadow-[0_0_18px_rgba(255,215,102,0.06)]">
+            <Bookmark size={15} strokeWidth={1.8} />
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold/62">
+              Versículos favoritos
+            </p>
+            <p className="mt-1 text-[13px] text-foreground/82">
+              {favorites.length} versículo{favorites.length !== 1 ? "s" : ""} salvo
+              {favorites.length !== 1 ? "s" : ""}
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground/44">
+              sua coleção pessoal de textos marcados
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       {favorites.map((fav, i) => (
         <motion.div
           key={`${fav.bookId}-${fav.chapter}-${fav.verse}`}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.04, duration: 0.25 }}
-          className="glass-card rounded-xl p-3.5 space-y-2"
+          initial={{ opacity: 0, y: 8, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.26 }}
+          className="glass-card rounded-[24px] p-4"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-gold/60">
-              {fav.bookName} {fav.chapter}:{fav.verse}
-            </span>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="mb-1.5 flex items-center gap-2">
+                <span className="rounded-full border border-gold/10 bg-gold/8 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-gold/72">
+                  {fav.bookName} {fav.chapter}:{fav.verse}
+                </span>
+              </div>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/34">
+                versículo salvo
+              </p>
+            </div>
+
             <button
               onClick={() => toggleFavorite(fav)}
-              className="rounded-full p-1.5 text-muted-foreground/30 hover:text-destructive/60 transition-all"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-muted-foreground/34 transition-all duration-200 hover:border-red-400/16 hover:bg-red-400/[0.05] hover:text-red-300/78"
+              aria-label="Remover dos favoritos"
             >
-              <Trash2 size={14} />
+              <Trash2 size={15} />
             </button>
           </div>
-          <p className="text-sm leading-relaxed text-foreground/80">
-            {fav.text}
-          </p>
-          <button
-            onClick={() => onReflect(`Refletir sobre ${fav.bookName} ${fav.chapter}:${fav.verse}: "${fav.text}"`)}
-            className="flex items-center gap-1.5 text-[11px] font-medium text-blue-calm/70 hover:text-blue-calm transition-colors"
-          >
-            <Sparkles size={11} />
-            Refletir com IA
-          </button>
+
+          <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/10 text-blue-200">
+                <Quote size={12} strokeWidth={1.8} />
+              </div>
+
+              <p className="border-l-2 border-blue-300/22 pl-3 text-[13.5px] leading-6 text-foreground/82">
+                {fav.text}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={() =>
+                onReflect(`Refletir sobre ${fav.bookName} ${fav.chapter}:${fav.verse}: "${fav.text}"`)
+              }
+              className="flex items-center gap-2 rounded-full border border-blue-300/10 bg-[linear-gradient(145deg,rgba(96,165,250,0.12),rgba(96,165,250,0.06))] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-calm transition-all duration-200 hover:border-blue-300/16 hover:bg-[linear-gradient(145deg,rgba(96,165,250,0.16),rgba(96,165,250,0.08))]"
+            >
+              <Wand2 size={12} />
+              Refletir com IA
+            </button>
+          </div>
         </motion.div>
       ))}
     </div>

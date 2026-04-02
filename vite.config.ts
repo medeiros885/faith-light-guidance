@@ -4,17 +4,20 @@ import path from "path";
 
 export default defineConfig({
   server: {
-    host: "0.0.0.0",
+    host: true,
     port: 5000,
-    hmr: {
-      clientPort: 443,
-    },
+    allowedHosts: true,
   },
   plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+    ],
   },
 });
