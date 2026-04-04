@@ -1,0 +1,102 @@
+Integrate Groq API into my app and replace the current AI provider cleanly.
+
+Project context:
+- This app already has a chat flow working through generateAIResponse(...)
+- The response format expected by the UI is:
+
+interface BibleResponse {
+  acolhimento: string;
+  contexto: string;
+  explicacao: string;
+  aplicacao: string;
+  versiculos: string[];
+  oracao: string;
+  followUp: string;
+}
+
+Goal:
+- Replace the current provider with Groq API
+- Keep the current UI and navigation intact
+- Keep the same structured BibleResponse output
+- Make it work after I only add the API key in the correct env secret
+
+Important:
+- Groq is OpenAI-compatible, so use the OpenAI SDK pattern with:
+  - baseURL: "https://api.groq.com/openai/v1"
+  - apiKey from env
+- Do not break the app
+- Do not remove existing features
+- Do not change the design
+- Keep robust fallback handling
+
+Implementation requirements:
+
+1) Update src/lib/ai.ts
+- Replace the current provider logic with Groq
+- Use this env variable:
+  GROQ_API_KEY
+- If the app needs frontend env access in this project structure, use:
+  VITE_GROQ_API_KEY
+- Prefer the safer option if the current architecture supports it
+- Add a clear comment showing where the key is expected
+
+2) Use an OpenAI-compatible chat completion call to Groq
+- baseURL: "https://api.groq.com/openai/v1"
+- model: "llama-3.3-70b-versatile"
+- temperature: 0.3
+- Ask the model to return STRICT JSON only
+
+3) Keep this exact JSON structure in the prompt:
+{
+  "acolhimento": "string",
+  "contexto": "string",
+  "explicacao": "string",
+  "aplicacao": "string",
+  "versiculos": ["string", "string"],
+  "oracao": "string",
+  "followUp": "string"
+}
+
+4) Keep all content in Brazilian Portuguese
+- warm
+- pastoral
+- theological
+- natural
+- not robotic
+
+5) Add safe parsing
+- If valid JSON comes back, parse it
+- If JSON comes inside markdown fences, extract it
+- If plain text comes back, convert it into a BibleResponse
+- If request fails, return a safe fallback BibleResponse
+
+6) Keep support for:
+- message
+- userEmotion
+- optional debug callback
+
+7) Preserve this function signature:
+export async function generateAIResponse(
+  message: string,
+  userEmotion?: string | null,
+  onDebug?: (msg: string) => void
+): Promise<BibleResponse>
+
+8) Add helpful debug logs:
+- provider selected
+- key exists yes/no
+- request started
+- HTTP status if available
+- JSON parsed yes/no
+- fallback used yes/no
+
+9) Do not modify the UI except where necessary to keep compatibility
+
+10) If the project currently imports from src/services/ai.ts, keep that working
+
+Expected result:
+- I only add the Groq API key in the proper secret/env variable
+- Restart the project
+- The app answers using Groq with structured pastoral/theological responses
+
+Use the Groq OpenAI-compatible approach, not the old Gemini request format.

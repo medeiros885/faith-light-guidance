@@ -34,10 +34,12 @@ import { generateAIResponse } from "@/services/ai";
 
 type Screen = "home" | "help" | "chat" | "bible";
 
+const SHOW_DEBUG_PANEL = false;
+
 const FALLBACK_RESPONSE: BibleResponse = {
   acolhimento: "Estou aqui com você.",
   contexto: "Tive dificuldade para montar a resposta agora.",
-  explicacao: "Pode ter acontecido um erro temporário na conexão com a IA.",
+  explicacao: "Pode ter acontecido um erro temporário na conexão com a resposta.",
   aplicacao: "Tente enviar sua pergunta novamente em alguns segundos.",
   versiculos: ["Salmos 46:1 — Deus é o nosso refúgio e fortaleza."],
   oracao: "Senhor, traz paz e clareza neste momento. Amém.",
@@ -50,15 +52,17 @@ interface ChatEntry {
 }
 
 const suggestions = [
+  "O que é fé segundo a Bíblia?",
+  "Como vencer a ansiedade com a Palavra?",
   "Quem foi o apóstolo Paulo?",
   "O que a Bíblia diz sobre perdão?",
-  "Qual o significado da fé?",
 ];
 
 const loadingHeaderPhrases = [
-  "Preparando uma resposta pra você...",
+  "Preparando uma resposta com carinho...",
   "Buscando direção na Palavra...",
   "Meditando nas Escrituras...",
+  "Organizando uma resposta pra você...",
 ];
 
 const Index = () => {
@@ -135,7 +139,7 @@ const Index = () => {
           setTimeout(() => {
             setVoiceStatus("idle");
             handleSubmitRef.current(finalText);
-          }, 1500);
+          }, 1200);
         }
       }
     };
@@ -200,15 +204,11 @@ const Index = () => {
       setInput("");
 
       try {
-        const keyExists = Boolean(import.meta.env.VITE_GEMINI_API_KEY);
-        addDebug(`API key: ${keyExists ? "✓ exists" : "✗ MISSING"}`);
         addDebug(`Sending to AI: "${question.slice(0, 60)}${question.length > 60 ? "…" : ""}"`);
-        console.log("SENDING TO AI:", question);
 
         const raw = await generateAIResponse(question, userEmotion, addDebug);
-        console.log("AI RESPONSE RECEIVED:", raw);
 
-        const safeResponse: BibleResponse = raw;
+        const safeResponse: BibleResponse = raw || FALLBACK_RESPONSE;
 
         const isExactFallback =
           safeResponse.acolhimento === FALLBACK_RESPONSE.acolhimento &&
@@ -223,7 +223,7 @@ const Index = () => {
         addDebug(
           isExactFallback
             ? "Response valid: ✗ fallback returned"
-            : "Response valid: ✓ real response returned"
+            : "Response valid: ✓ pastoral response returned"
         );
 
         setChatHistory((prev) =>
@@ -236,7 +236,7 @@ const Index = () => {
       } catch (error) {
         const errMsg = String(error);
         addDebug(`Error caught: ${errMsg.slice(0, 100)}`);
-        console.error("Erro ao gerar resposta da IA:", error);
+        console.error("Erro ao gerar resposta:", error);
 
         setChatHistory((prev) =>
           prev.map((entry, i) =>
@@ -256,7 +256,6 @@ const Index = () => {
 
   const handleSubmit = (question: string) => {
     addDebug(`handleSubmit: "${question.slice(0, 50)}" | loading: ${isLoading}`);
-    console.log("handleSubmit called with:", question, "| isLoading:", isLoading);
     if (!question.trim() || isLoading) return;
     void requestAIResponse(question, screen === "chat");
   };
@@ -272,7 +271,7 @@ const Index = () => {
     setTimeout(() => {
       setChatHistory([{ question, response }]);
       setIsLoading(false);
-    }, 1500);
+    }, 1200);
   };
 
   const handleBack = () => {
@@ -360,7 +359,7 @@ const Index = () => {
                       animate={{ opacity: 1 }}
                       className="block text-[10px] text-muted-foreground/42"
                     >
-                      online
+                      disponível
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -415,7 +414,7 @@ const Index = () => {
                     </p>
 
                     <p className="mx-auto mt-2 max-w-[280px] text-[13px] leading-6 text-muted-foreground/52">
-                      Um lugar de direção, consolo e reflexão bíblica para o seu dia.
+                      Um espaço de direção, consolo e aconselhamento bíblico para o seu dia.
                     </p>
                   </div>
                 </motion.div>
@@ -449,7 +448,7 @@ const Index = () => {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
-                      placeholder="Escreva ou fale… Deus está ouvindo com você"
+                      placeholder="Escreva ou fale sua pergunta..."
                       aria-label="Escreva sua mensagem"
                       className="home-input-glass breathing-border w-full rounded-[26px] px-5 py-4 pr-24 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
                     />
@@ -526,7 +525,7 @@ const Index = () => {
 
                 <div className="w-full space-y-2.5">
                   <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/30">
-                    Perguntas frequentes
+                    Perguntas em destaque
                   </p>
                   {suggestions.map((s, i) => (
                     <SuggestionCard key={s} text={s} index={i} onClick={handleSubmit} />
@@ -670,7 +669,7 @@ const Index = () => {
                 <span className="text-xs italic text-blue-calm">
                   {isListening
                     ? "Pode falar, estou aqui 💙"
-                    : "Entendi... deixa eu te responder 💙"}
+                    : "Entendi... deixa eu organizar uma resposta pra você 💙"}
                 </span>
               </motion.div>
             )}
@@ -736,7 +735,7 @@ const Index = () => {
         {showGuidedCalm && <GuidedCalm onClose={() => setShowGuidedCalm(false)} />}
       </AnimatePresence>
 
-      {import.meta.env.DEV && (
+      {import.meta.env.DEV && SHOW_DEBUG_PANEL && (
         <div className="fixed bottom-0 left-0 right-0 z-[9999] max-h-48 overflow-y-auto border-t border-white/10 bg-black/95 px-3 py-2 font-mono text-[10px] leading-5">
           <div className="mb-1 flex items-center justify-between">
             <span className="font-bold text-yellow-400">🔧 AI Debug Panel (dev only)</span>
@@ -752,10 +751,16 @@ const Index = () => {
           ) : (
             debugLog.map((line, i) => {
               const color =
-                line.includes("✓") ? "text-green-400" :
-                line.includes("✗") || line.includes("MISSING") || line.includes("failed") || line.includes("Error") ? "text-red-400" :
-                line.includes("Retry") || line.includes("warn") ? "text-yellow-300" :
-                "text-gray-300";
+                line.includes("✓")
+                  ? "text-green-400"
+                  : line.includes("✗") ||
+                    line.includes("MISSING") ||
+                    line.includes("failed") ||
+                    line.includes("Error")
+                  ? "text-red-400"
+                  : line.includes("Retry") || line.includes("warn")
+                  ? "text-yellow-300"
+                  : "text-gray-300";
               return (
                 <div key={i} className={color}>
                   {line}
