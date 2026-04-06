@@ -1,0 +1,16 @@
+{
+  "short_name": "Caminho",
+  "name": "Caminho Vivo",
+  "description": "Seu guia espiritual com IA e Bíblia Sagrada.",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#000000"
+}

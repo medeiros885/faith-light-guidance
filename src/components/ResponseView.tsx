@@ -17,292 +17,144 @@ interface ResponseViewProps {
   question: string;
 }
 
-const sectionTransition = (delay: number) => ({
-  duration: 0.42,
-  delay,
-  ease: "easeOut" as const,
-});
-
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.075,
-    },
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 12, scale: 0.988 },
-  show: { opacity: 1, y: 0, scale: 1 },
+  hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: { type: "spring", stiffness: 100, damping: 20 }
+  },
 };
 
-function SectionHeader({
-  icon,
-  label,
-  accent = "text-blue-calm",
-  right,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  accent?: string;
-  right?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2.5">
-        <div
-          className={`flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl ${accent}`}
-        >
-          {icon}
-        </div>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/58">
-          {label}
-        </span>
-      </div>
-      {right}
-    </div>
-  );
-}
-
-function AssistantCard({
-  children,
-  className = "",
-  glow = true,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  glow?: boolean;
-}) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.035))] shadow-[0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-2xl ${className}`}
-    >
-      {glow && (
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.16),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.12),transparent_34%)]" />
-      )}
-      <div className="pointer-events-none absolute inset-0 rounded-[26px] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" />
-      <div className="relative">{children}</div>
-    </div>
-  );
-}
-
-function BodyText({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <p className={`text-[13.5px] leading-6 text-foreground/80 ${className}`}>
-      {children}
-    </p>
-  );
-}
-
-function SectionBlock({
-  icon,
-  label,
-  accent,
-  children,
-  className = "",
-  right,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  accent?: string;
-  children: React.ReactNode;
-  className?: string;
-  right?: React.ReactNode;
-}) {
-  return (
-    <AssistantCard className={`rounded-tl-sm ${className}`}>
-      <div className="px-4 py-4">
-        <SectionHeader icon={icon} label={label} accent={accent} right={right} />
-        {children}
-      </div>
-    </AssistantCard>
-  );
-}
-
 const ResponseView = ({ response, question }: ResponseViewProps) => {
+  const verses = Array.isArray(response.versiculos) ? response.versiculos : [];
+  const versesText = verses.join(". ");
+
   return (
     <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-3.5 pb-7"
+      className="space-y-8 pb-12"
     >
-      {/* User question */}
-      <motion.div variants={itemVariants} className="flex justify-end">
-        <div className="max-w-[79%] rounded-[22px] rounded-tr-sm border border-white/10 bg-[linear-gradient(180deg,rgba(255,215,102,0.18),rgba(255,215,102,0.07))] px-4 py-3 text-sm leading-relaxed text-foreground/92 shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-          {question}
+      {/* 1. PERGUNTA DO USUÁRIO */}
+      <motion.div variants={itemVariants} className="flex justify-end pl-12">
+        <div className="relative bg-gradient-to-br from-gold to-gold-dark px-5 py-3 rounded-[24px] rounded-tr-none shadow-xl shadow-gold/10">
+          <p className="text-sm font-bold text-black/80 leading-relaxed italic">
+            "{question}"
+          </p>
+          {/* Triângulo da bolha de chat */}
+          <div className="absolute top-0 -right-1 w-4 h-4 bg-gold-dark [clip-path:polygon(0_0,0_100%,100%_0)]" />
         </div>
       </motion.div>
 
-      {/* Main answer / acolhimento */}
-      <motion.div
-        variants={itemVariants}
-        transition={sectionTransition(0.08)}
-        className="flex justify-start"
-      >
-        <div className="max-w-[93%]">
-          <div className="mb-2.5 flex items-center gap-2 pl-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-300/15 bg-blue-400/10 text-blue-200 shadow-[0_0_20px_rgba(96,165,250,0.18)]">
-              <Sparkles size={14} strokeWidth={1.85} />
-            </div>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-100/62">
-              Resposta principal
-            </span>
+      {/* 2. ACOLHIMENTO (A RESPOSTA DA IA) */}
+      <motion.div variants={itemVariants} className="flex justify-start pr-6">
+        <div className="glass-premium rounded-[28px] rounded-tl-none p-6 border border-white/10 relative overflow-hidden">
+          <div className="absolute -left-4 -top-4 opacity-5">
+            <Sparkles size={80} />
           </div>
 
-          <AssistantCard className="rounded-tl-sm border-blue-300/10 bg-[linear-gradient(180deg,rgba(18,62,122,0.34),rgba(7,24,46,0.78))]">
-            <div className="px-5 py-4.5">
-              <p className="text-[15.5px] font-medium leading-7 text-foreground/95">
-                {response.acolhimento}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
+              <Sparkles size={14} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400/60">Consolo Bíblico</span>
+          </div>
+
+          <p className="text-[17px] leading-relaxed text-white/90 font-medium antialiased">
+            {response.acolhimento}
+          </p>
+        </div>
+      </motion.div>
+
+      {/* 3. ENSINAMENTO (CONTEXTO + EXPLICAÇÃO) */}
+      <motion.div variants={itemVariants} className="space-y-6 px-2">
+        <div className="grid gap-6">
+          <section>
+            <div className="flex items-center gap-3 mb-3">
+              <BookOpen size={16} className="text-gold/50" />
+              <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/30">Contexto Histórico</h4>
+            </div>
+            <p className="text-sm text-white/60 leading-relaxed pl-7">
+              {response.contexto}
+            </p>
+          </section>
+
+          <section>
+            <div className="flex items-center gap-3 mb-3">
+              <Lightbulb size={16} className="text-gold" />
+              <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-gold/60">A Sabedoria para hoje</h4>
+            </div>
+            <p className="text-sm text-white/80 leading-relaxed pl-7 font-medium border-l border-gold/20">
+              {response.explicacao}
+            </p>
+          </section>
+        </div>
+      </motion.div>
+
+      {/* 4. VERSÍCULOS CHAVE (O CENTRO) */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-3">
+            <BookMarked size={16} className="text-blue-400" />
+            <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">Escrituras Sagradas</h4>
+          </div>
+          {verses.length > 0 && <ListenButton text={versesText} size="sm" />}
+        </div>
+
+        <div className="space-y-3">
+          {verses.map((verse, i) => (
+            <div key={i} className="group relative glass-premium p-5 rounded-[24px] border border-white/5 overflow-hidden">
+              <div className="absolute left-0 top-0 w-1 h-full bg-blue-500/40" />
+              <Quote size={20} className="absolute -right-2 -bottom-2 text-white/5 rotate-12" />
+              <p className="font-serif italic text-[15px] leading-relaxed text-white/90">
+                {verse}
               </p>
             </div>
-          </AssistantCard>
+          ))}
         </div>
       </motion.div>
 
-      {/* Contexto */}
-      <motion.div
-        variants={itemVariants}
-        transition={sectionTransition(0.16)}
-        className="flex justify-start"
-      >
-        <div className="max-w-[91%]">
-          <SectionBlock
-            icon={<BookOpen size={13} strokeWidth={1.75} />}
-            label="Contexto bíblico"
-            accent="text-blue-200"
-          >
-            <BodyText>{response.contexto}</BodyText>
-          </SectionBlock>
-        </div>
-      </motion.div>
-
-      {/* Explicação */}
-      <motion.div
-        variants={itemVariants}
-        transition={sectionTransition(0.24)}
-        className="flex justify-start"
-      >
-        <div className="max-w-[91%]">
-          <SectionBlock
-            icon={<Lightbulb size={13} strokeWidth={1.75} />}
-            label="Explicação"
-            accent="text-gold-light"
-          >
-            <BodyText>{response.explicacao}</BodyText>
-          </SectionBlock>
-        </div>
-      </motion.div>
-
-      {/* Aplicação */}
-      <motion.div
-        variants={itemVariants}
-        transition={sectionTransition(0.32)}
-        className="flex justify-start"
-      >
-        <div className="max-w-[91%]">
-          <SectionBlock
-            icon={<Heart size={13} strokeWidth={1.75} />}
-            label="Na prática"
-            accent="text-pink-200"
-          >
-            <BodyText>{response.aplicacao}</BodyText>
-          </SectionBlock>
-        </div>
-      </motion.div>
-
-      {/* Versículos */}
-      <motion.div
-        variants={itemVariants}
-        transition={sectionTransition(0.4)}
-        className="flex justify-start"
-      >
-        <div className="max-w-[93%]">
-          <SectionBlock
-            icon={<BookMarked size={13} strokeWidth={1.75} />}
-            label="Versículos"
-            accent="text-blue-200"
-            className="border-blue-300/10 bg-[linear-gradient(180deg,rgba(11,46,91,0.58),rgba(4,11,22,0.84))]"
-            right={<ListenButton text={Array.isArray(response.versiculos) ? response.versiculos.join(". ") : ""} size="sm" />}
-          >
-            <div className="space-y-3">
-              {(Array.isArray(response.versiculos) ? response.versiculos : []).map((v, i) => (
-                <div
-                  key={i}
-                  className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-blue-300/12 bg-blue-400/10 text-blue-200">
-                      <Quote size={12} strokeWidth={1.8} />
-                    </div>
-
-                    <p className="border-l-2 border-blue-300/25 pl-3 text-[13px] italic leading-6 text-foreground/84">
-                      {v}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </SectionBlock>
-        </div>
-      </motion.div>
-
-      {/* Oração */}
-      <motion.div
-        variants={itemVariants}
-        transition={sectionTransition(0.48)}
-        className="flex justify-start"
-      >
-        <div className="max-w-[93%]">
-          <SectionBlock
-            icon={<HandHelping size={13} strokeWidth={1.75} />}
-            label="Oração"
-            accent="text-gold-light"
-            className="border-gold/10 bg-[linear-gradient(180deg,rgba(255,215,102,0.08),rgba(255,255,255,0.03))]"
-            right={<ListenButton text={response.oracao} size="sm" />}
-          >
-            <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-3.5">
-              <p className="text-[13.5px] italic leading-6 text-foreground/74">
-                {response.oracao}
-              </p>
-            </div>
-          </SectionBlock>
-        </div>
-      </motion.div>
-
-      {/* Follow-up */}
-      <motion.div
-        variants={itemVariants}
-        transition={sectionTransition(0.56)}
-        className="flex justify-start"
-      >
-        <div className="max-w-[91%]">
-          <AssistantCard className="rounded-tl-sm border-blue-300/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))]">
-            <div className="px-4 py-3.5">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-blue-300/15 bg-blue-400/10 text-blue-calm">
-                  <MessageCircle size={13} strokeWidth={1.75} />
-                </div>
-
-                <div className="min-w-0">
-                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-100/54">
-                    Próximo passo
-                  </p>
-                  <p className="text-[13.5px] leading-6 text-foreground/82">
-                    {response.followUp}
-                  </p>
-                </div>
+      {/* 5. ORAÇÃO (MOMENTO FINAL) */}
+      {response.oracao && (
+        <motion.div variants={itemVariants} className="relative">
+          <div className="absolute inset-0 bg-gold/5 blur-[80px] rounded-full pointer-events-none" />
+          <div className="relative glass-premium border border-gold/20 rounded-[32px] p-8 text-center space-y-4">
+            <div className="flex flex-col items-center gap-2">
+              <div className="p-3 rounded-full bg-gold/10 text-gold mb-2">
+                <HandHelping size={24} />
               </div>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gold/60">Elevemos o Coração</h4>
             </div>
-          </AssistantCard>
+
+            <p className="font-serif text-lg italic text-gold-light leading-loose">
+              "{response.oracao}"
+            </p>
+
+            <div className="pt-2 flex justify-center">
+              <ListenButton text={response.oracao} size="md" />
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* 6. FOLLOW UP */}
+      <motion.div variants={itemVariants} className="pt-4 px-6">
+        <div className="flex items-center gap-4 py-4 px-6 rounded-2xl bg-white/5 border border-white/5 italic">
+          <MessageCircle size={16} className="text-white/20" />
+          <p className="text-xs text-white/40 leading-relaxed">
+            {response.followUp}
+          </p>
         </div>
       </motion.div>
     </motion.div>

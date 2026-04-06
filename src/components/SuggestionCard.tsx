@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, ArrowRight, Sparkles } from "lucide-react";
 
 interface SuggestionCardProps {
   text: string;
@@ -13,35 +13,45 @@ const SuggestionCard = forwardRef<HTMLButtonElement, SuggestionCardProps>(
     return (
       <motion.button
         ref={ref}
-        initial={{ opacity: 0, y: 12, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
         transition={{
-          delay: 0.28 + index * 0.06,
-          duration: 0.35,
-          ease: "easeOut",
+          delay: 0.1 * index,
+          duration: 0.4,
+          ease: [0.23, 1, 0.32, 1],
         }}
-        whileTap={{ scale: 0.97 }}
+        whileTap={{ scale: 0.98, backgroundColor: "rgba(255, 255, 255, 0.05)" }}
         onClick={() => onClick(text)}
-        className="group relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] px-4 py-3.5 text-left backdrop-blur-xl transition-all duration-300 hover:border-white/20"
+        className="group relative w-full overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-left backdrop-blur-md transition-all duration-300 hover:border-gold/30 hover:bg-white/[0.04]"
       >
-        {/* Glow */}
-        <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_left,rgba(96,165,250,0.08),transparent_40%)]" />
-        </div>
+        {/* Glow sutil no fundo ao passar o mouse/toque */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(217,167,74,0.05),transparent_40%)] opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        <div className="relative z-10 flex items-start gap-3">
-          <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/10 text-blue-200">
-            <MessageCircle size={14} strokeWidth={1.8} />
+        <div className="relative z-10 flex items-center gap-4">
+          {/* Ícone com Badge de Sugestão */}
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-gold/10 bg-gold/5 text-gold shadow-sm transition-transform group-hover:scale-110">
+            <MessageCircle size={18} strokeWidth={2} />
           </div>
 
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-100/45">
-              Sugestão
-            </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-gold/50">
+                Sugerido
+              </span>
+              <Sparkles size={10} className="text-gold/30 animate-pulse" />
+            </div>
 
-            <p className="mt-0.5 text-[13.5px] leading-5 text-foreground/80 transition-colors duration-200 group-hover:text-foreground">
+            <p className="text-[14px] font-medium leading-snug text-white/80 group-hover:text-white transition-colors">
               {text}
             </p>
+          </div>
+
+          {/* Seta de ação */}
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white/20 group-hover:text-gold transition-all group-hover:bg-gold/10">
+            <ArrowRight
+              size={14}
+              className="transition-transform duration-300 group-hover:translate-x-0.5"
+            />
           </div>
         </div>
       </motion.button>

@@ -22,6 +22,7 @@ type Intent =
   | "verse"
   | "general";
 
+// Adicionado o 'string' no final para aceitar os milhares de temas novos sem erro de tipagem
 type TopicKey =
   | "salvation_security"
   | "salvation"
@@ -51,25 +52,46 @@ type TopicKey =
   | "factual"
   | "verse"
   | "prayer"
-  | "general";
+  | "general"
+  | string;
+
+type NormalizedEmotion =
+  | "triste"
+  | "ansioso"
+  | "medo"
+  | "cansado"
+  | "confuso"
+  | "em_paz"
+  | null;
 
 type MemoryState = {
   lastTopic: TopicKey | null;
   lastIntent: Intent | null;
-  lastEmotion: UserEmotion | null;
+  lastEmotion: NormalizedEmotion;
+  lastQuestion: string | null;
+  conversationDepth: number;
 };
 
 let memoryState: MemoryState = {
   lastTopic: null,
   lastIntent: null,
   lastEmotion: null,
+  lastQuestion: null,
+  conversationDepth: 0,
 };
 
-function remember(topic: TopicKey, intent: Intent, emotion?: UserEmotion | null) {
+function remember(
+  topic: TopicKey,
+  intent: Intent,
+  emotion?: NormalizedEmotion,
+  question?: string
+) {
   memoryState = {
     lastTopic: topic,
     lastIntent: intent,
     lastEmotion: emotion ?? null,
+    lastQuestion: question ?? null,
+    conversationDepth: memoryState.conversationDepth + 1,
   };
 }
 
@@ -77,19 +99,41 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function normalizeEmotion(emotion?: UserEmotion | string | null): NormalizedEmotion {
+  if (!emotion) return null;
+
+  const value = String(emotion).toLowerCase().trim();
+
+  if (value.includes("ansio")) return "ansioso";
+  if (value.includes("trist")) return "triste";
+  if (value.includes("med")) return "medo";
+  if (value.includes("cansa")) return "cansado";
+  if (value.includes("conf")) return "confuso";
+  if (value.includes("paz")) return "em_paz";
+
+  return null;
+}
+
 function maybePrefixWithMemory(topic: TopicKey): string {
-  if (memoryState.lastTopic && memoryState.lastTopic === topic) {
+  if (memoryState.conversationDepth > 2) {
     return pick([
-      "Voltando ao que você perguntou agora há pouco… ",
-      "Continuando nessa mesma linha… ",
-      "Pegando o fio da meada dessa conversa… ",
+      "Eu tô percebendo que essa questão está realmente importante pra você… ",
+      "Isso está se tornando uma reflexão mais profunda na sua caminhada… ",
     ]);
   }
 
-  if (memoryState.lastIntent === "emotional" && topic === "salvation_security") {
+  if (memoryState.lastTopic && memoryState.lastTopic === topic) {
     return pick([
-      "Como isso costuma mexer com o coração de muita gente… ",
-      "Como essa dúvida normalmente vem acompanhada de inquietação… ",
+      "Voltando ao que você trouxe agora há pouco… ",
+      "Continuando exatamente nesse ponto… ",
+      "Pegando essa mesma linha que você abriu… ",
+    ]);
+  }
+
+  if (memoryState.lastIntent === "emotional") {
+    return pick([
+      "Percebo que isso não é só uma dúvida, mas algo que toca seu coração… ",
+      "Isso não parece só teórico — parece pessoal pra você… ",
     ]);
   }
 
@@ -99,34 +143,36 @@ function maybePrefixWithMemory(topic: TopicKey): string {
 function detectIntent(q: string): Intent {
   const lower = q.toLowerCase();
 
-  if (/orar|ora[cç][aã]o|reza|reze|intercede|ore\s+por/.test(lower)) return "prayer";
-  if (/vers[íi]culo|me\s+mostra\s+um\s+vers|me\s+d[aá]\s+um\s+vers/i.test(lower))
-    return "verse";
+  if (/orar|oração|reza|ore por/.test(lower)) return "prayer";
+  if (/versículo|me mostra um vers/i.test(lower)) return "verse";
 
   if (
-    /salva[cç][aã]o|gra[cç]a|pecado|trindade|esp[ií]rito\s+santo|batismo|inferno|c[eé]u|vida\s+eterna|predestina|livre\s*arb|apocalipse|arrebatamento|doutrina|teolog|justifica[cç][aã]o|santifica[cç][aã]o|regenera[cç][aã]o|apostasia|jejum|d[ií]zimo|ceia|comunh[aã]o|guerra\s+espiritual|dem[oô]nio|igreja|arrependimento/.test(
+    /salvação|graça|pecado|trindade|espírito santo|batismo|inferno|céu|vida eterna|predestinação|teologia|doutrina|igreja|arrependimento|jejum|divórcio|namoro|prosperidade|dízimo|demônios|anjos/.test(
       lower
     )
-  )
+  ) {
     return "theological";
+  }
 
   if (
-    /trist|ansio|medo|sozinho|vazio|dor|sofr|culpa|cansa|confus|ang[uú]st|desespero|preocup|aflito|afli[cç]|exaust|esgota/.test(
+    /triste|ansioso|medo|sozinho|vazio|dor|culpa|cansa|confuso|angústia|depressão|suicídio/.test(
       lower
     )
-  )
+  ) {
     return "emotional";
+  }
 
-  if (/^(quem|qual|quantos?|quantas?|onde|quando|como|o que|por que)\b/.test(lower))
+  if (/^(quem|qual|quantos?|onde|quando|como|por que)/.test(lower)) {
     return "factual";
+  }
 
   return "general";
 }
 
-const emotionOpenings: Record<string, string[]> = {
+const emotionOpenings: Record<Exclude<NormalizedEmotion, null>, string[]> = {
   triste: [
-    "Eu sinto que isso está pesado pra você…",
-    "Imagino que isso não esteja sendo nada fácil…",
+    "Eu sinto que isso está doendo em você…",
+    "Imagino que isso esteja bem pesado no seu coração.",
     "Seu coração merece cuidado agora.",
     "Deus vê cada lágrima sua, e nenhuma passa despercebida.",
   ],
@@ -138,7 +184,7 @@ const emotionOpenings: Record<string, string[]> = {
   ],
   cansado: [
     "Eu entendo esse cansaço…",
-    "Você parece sobrecarregado, de verdade.",
+    "Você parece sobrecarregado de verdade.",
     "Vamos devagar. Nem tudo precisa ser resolvido agora.",
   ],
   confuso: [
@@ -159,30 +205,42 @@ const emotionOpenings: Record<string, string[]> = {
 };
 
 const defaultOpenings = [
-  "Entendo você.",
   "Obrigado por confiar isso aqui.",
-  "Faz sentido trazer essa pergunta.",
-  "Vamos olhar isso com calma.",
-  "Eu te ouço. E Deus também.",
-  "Essa é uma pergunta importante.",
+  "Isso que você trouxe é importante de verdade.",
+  "Faz sentido você pensar nisso.",
+  "Eu tô com você nessa reflexão.",
+  "Essa pergunta não é simples — e tá tudo bem.",
+  "Isso merece ser olhado com calma.",
 ];
 
-function getEmotionAcolhimento(emotion?: UserEmotion | null): string {
-  if (emotion && emotionOpenings[String(emotion)]) {
-    return pick(emotionOpenings[String(emotion)]);
+function getEmotionAcolhimento(emotion?: NormalizedEmotion): string {
+  if (emotion && emotionOpenings[emotion]) {
+    return pick(emotionOpenings[emotion]);
   }
   return pick(defaultOpenings);
 }
 
-function inferEmotionFromQuestion(q: string): UserEmotion | null {
+function inferEmotionFromQuestion(q: string): NormalizedEmotion {
   const lower = q.toLowerCase();
 
   if (/ansio|preocup|nervos|afli[cç][aã]o|desespero|p[aâ]nico/.test(lower)) return "ansioso";
-  if (/trist|chor|vazio|sozinho|saudade|abatid|quebrado/.test(lower)) return "triste";
+  if (/trist|chor|vazio|sozinho|saudade|abatid|quebrado|depress[aã]o|suic[ií]dio/.test(lower)) return "triste";
   if (/medo|assust|pavor|receio|terror/.test(lower)) return "medo";
   if (/cansa|exaust|esgota|sobrecarreg/.test(lower)) return "cansado";
   if (/confus|perdid|sem\s+dire[cç][aã]o/.test(lower)) return "confuso";
+
   return null;
+}
+
+function prayerSuggestion(topic?: string): string {
+  if (topic) {
+    return `Se fizer sentido pra você, posso transformar isso em uma oração simples sobre ${topic}.`;
+  }
+
+  return pick([
+    "Se fizer sentido pra você, posso transformar isso em uma oração simples.",
+    "Se quiser, posso te ajudar com uma oração bem direta sobre isso.",
+  ]);
 }
 
 function buildDirectTheologyResponse(opts: {
@@ -192,13 +250,14 @@ function buildDirectTheologyResponse(opts: {
   explanation: string | string[];
   application: string | string[];
   verses: string[];
-  prayer: string | string[];
   followUp?: string | string[];
-  emotion?: UserEmotion | null;
+  emotion?: NormalizedEmotion;
+  prayerTopic?: string;
 }): BibleResponse {
   const inferredEmotion = opts.emotion ?? null;
   const emotionalPrefix =
-    inferredEmotion && ["ansioso", "triste", "medo", "cansado", "confuso"].includes(String(inferredEmotion))
+    inferredEmotion &&
+    ["ansioso", "triste", "medo", "cansado", "confuso"].includes(inferredEmotion)
       ? `${getEmotionAcolhimento(inferredEmotion)} `
       : "";
 
@@ -210,14 +269,15 @@ function buildDirectTheologyResponse(opts: {
   const application = Array.isArray(opts.application)
     ? pick(opts.application)
     : opts.application;
-  const prayer = Array.isArray(opts.prayer) ? pick(opts.prayer) : opts.prayer;
   const followUp = Array.isArray(opts.followUp)
     ? pick(opts.followUp)
     : opts.followUp ??
       pick([
-        "Quer que eu aprofunde isso de forma mais simples?",
-        "Quer que eu te mostre mais textos sobre esse tema?",
-        "Quer que eu conecte isso com a vida prática?",
+        "Quer aprofundar mais esse ponto específico?",
+        "Quer que eu te mostre como isso aparece na prática?",
+        "Quer explorar mais um texto bíblico sobre isso?",
+        "Quer levar isso pra uma aplicação mais pessoal?",
+        "Quer que eu simplifique ainda mais essa parte?",
       ]);
 
   return {
@@ -226,7 +286,7 @@ function buildDirectTheologyResponse(opts: {
     explicacao: explanation,
     aplicacao: application,
     versiculos: opts.verses,
-    oracao: prayer,
+    oracao: prayerSuggestion(opts.prayerTopic),
     followUp,
   };
 }
@@ -238,43 +298,13 @@ function buildDebatedTheologyResponse(opts: {
   explanation: string | string[];
   application: string | string[];
   verses: string[];
-  prayer: string | string[];
   followUp?: string | string[];
-  emotion?: UserEmotion | null;
+  emotion?: NormalizedEmotion;
+  prayerTopic?: string;
 }): BibleResponse {
-  const inferredEmotion = opts.emotion ?? null;
-  const emotionalPrefix =
-    inferredEmotion && ["ansioso", "triste", "medo", "cansado", "confuso"].includes(String(inferredEmotion))
-      ? `${getEmotionAcolhimento(inferredEmotion)} `
-      : "";
-
-  const direct = Array.isArray(opts.direct) ? pick(opts.direct) : opts.direct;
-  const context = Array.isArray(opts.context) ? pick(opts.context) : opts.context;
-  const explanation = Array.isArray(opts.explanation)
-    ? pick(opts.explanation)
-    : opts.explanation;
-  const application = Array.isArray(opts.application)
-    ? pick(opts.application)
-    : opts.application;
-  const prayer = Array.isArray(opts.prayer) ? pick(opts.prayer) : opts.prayer;
-  const followUp = Array.isArray(opts.followUp)
-    ? pick(opts.followUp)
-    : opts.followUp ??
-      pick([
-        "Quer que eu te mostre os textos usados em cada visão?",
-        "Quer que eu resuma os dois lados de forma mais simples?",
-        "Quer que eu aprofunde um desses pontos de vista?",
-      ]);
-
-  return {
-    acolhimento: `${maybePrefixWithMemory(opts.topic)}${emotionalPrefix}${direct}`.trim(),
-    contexto: context,
-    explicacao: explanation,
-    aplicacao: application,
-    versiculos: opts.verses,
-    oracao: prayer,
-    followUp,
-  };
+  return buildDirectTheologyResponse({
+    ...opts,
+  });
 }
 
 function salvationSecurityMatcher(lower: string) {
@@ -303,7 +333,7 @@ function heavenMatcher(lower: string) {
 
 function buildEmotionalBridge(
   q: string,
-  emotion?: UserEmotion | null
+  emotion?: NormalizedEmotion
 ): string | null {
   const detected = emotion ?? inferEmotionFromQuestion(q);
   if (!detected) return null;
@@ -339,43 +369,36 @@ function buildEmotionalBridge(
   return null;
 }
 
-function matchTheological(q: string, emotion?: UserEmotion | null): BibleResponse | null {
+function matchTheological(q: string, emotion?: NormalizedEmotion): BibleResponse | null {
   const lower = q.toLowerCase();
   const bridge = buildEmotionalBridge(q, emotion);
+
+  // ==========================================
+  // BLOCOS ORIGINAIS
+  // ==========================================
 
   if (salvationSecurityMatcher(lower)) {
     return buildDebatedTheologyResponse({
       topic: "salvation_security",
       emotion,
+      prayerTopic: "salvação e perseverança",
       direct: [
         "Existem interpretações cristãs diferentes sobre isso. Alguns entendem que a salvação é definitiva em Cristo; outros entendem que a Bíblia também alerta sobre a possibilidade de afastamento.",
-        "Essa é uma daquelas perguntas em que cristãos sinceros acabam chegando a conclusões diferentes, usando textos bíblicos reais dos dois lados.",
       ],
       context: [
         "A Bíblia apresenta tanto textos de segurança em Cristo quanto alertas sérios sobre perseverança. Por isso esse tema sempre foi debatido na teologia cristã.",
-        "Quando esse assunto aparece, geralmente entram em cena dois grupos de textos: os que enfatizam a segurança da salvação e os que enfatizam a necessidade de permanecer firme até o fim.",
       ],
       explanation: [
         `${bridge ? `${bridge} ` : ""}Textos como João 10:28 e Romanos 8:38-39 são usados por quem defende segurança eterna. Já Hebreus 6:4-6 e Hebreus 10:26-29 são usados por quem entende que existe o risco de afastamento real. O ponto comum entre todos é: a salvação começa pela graça e conduz a uma vida de perseverança.`,
-        `${bridge ? `${bridge} ` : ""}Alguns cristãos dizem: “quem nasceu de novo de verdade persevera até o fim”. Outros dizem: “a Bíblia leva a sério a responsabilidade humana de permanecer”. As duas leituras tentam honrar o texto bíblico.`,
       ],
       application: [
         "Mais importante do que transformar isso só em debate é viver diariamente em comunhão com Cristo, com fé sincera, arrependimento e constância.",
-        "Na prática, essa pergunta não deve te empurrar pro pânico, e sim pra mais proximidade de Jesus, mais sinceridade e mais dependência da graça.",
       ],
       verses: [
         'João 10:28 — "Eu lhes dou a vida eterna, e jamais perecerão."',
-        'Hebreus 6:4-6 — alerta sobre aqueles que caíram.',
         'Hebreus 3:14 — "Somos participantes de Cristo, se de fato guardarmos firme até o fim."',
       ],
-      prayer: [
-        "Senhor, fortalece minha fé e me ajuda a permanecer firme em Ti todos os dias. Amém.",
-        "Pai, guarda meu coração em Ti, livra-me do desespero e firma meus passos na Tua graça. Amém.",
-      ],
-      followUp: [
-        "Quer que eu te mostre, de forma simples, os textos usados por cada visão?",
-        "Quer que eu resuma os dois lados dessa questão sem linguagem complicada?",
-      ],
+      followUp: "Quer que eu te mostre, de forma simples, os textos usados por cada visão?",
     });
   }
 
@@ -383,69 +406,135 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "salvation",
       emotion,
-      direct: [
-        "Salvação é o resgate que Deus faz da humanidade através de Jesus Cristo.",
-        "Salvação é a obra de Deus para reconciliar o ser humano consigo por meio de Jesus.",
-      ],
-      context: [
-        "A Bíblia mostra que todos pecaram e estão separados de Deus. A salvação é a iniciativa de Deus para restaurar esse relacionamento, não algo que o homem conquista sozinho.",
-        "Desde o começo da Bíblia, Deus revela que o problema do homem não é só moral, mas espiritual. A salvação é a resposta de Deus para isso.",
-      ],
-      explanation: [
-        "Não é por mérito ou esforço humano. É pela graça de Deus, recebida pela fé em Jesus. Ele viveu, morreu e ressuscitou para nos dar vida eterna.",
-        "Ser salvo não é se tornar merecedor de Deus, e sim confiar na obra perfeita de Cristo, que fez por nós o que não conseguiríamos fazer sozinhos.",
-      ],
-      application: [
-        "A salvação começa com um 'sim' sincero a Jesus. Não precisa ser perfeito — precisa ser verdadeiro.",
-        "Na prática, isso significa parar de confiar no próprio esforço como base da aceitação e descansar na graça de Cristo.",
-      ],
-      verses: [
-        'Efésios 2:8-9 — "Pois vocês são salvos pela graça, por meio da fé..."',
-        'Romanos 10:9 — "Se você confessar com a sua boca que Jesus é Senhor... será salvo."',
-      ],
-      prayer: [
-        "Senhor Jesus, eu reconheço que preciso de Ti. Entrego minha vida nas Tuas mãos. Amém.",
-        "Pai, obrigado porque a salvação começa na Tua graça e não no meu mérito. Amém.",
-      ],
-      followUp: [
-        "Quer entender o que muda na vida de alguém que é salvo?",
-        "Quer que eu te explique a diferença entre salvação, justificação e santificação?",
-      ],
+      prayerTopic: "salvação",
+      direct: "Salvação é o resgate que Deus faz da humanidade através de Jesus Cristo.",
+      context: "A Bíblia mostra que todos pecaram e estão separados de Deus. A salvação é a iniciativa de Deus para restaurar esse relacionamento.",
+      explanation: "Não é por mérito ou esforço humano. É pela graça de Deus, recebida pela fé em Jesus. Ele viveu, morreu e ressuscitou para nos dar vida eterna.",
+      application: "A salvação começa com um 'sim' sincero a Jesus. Não precisa ser perfeito — precisa ser verdadeiro.",
+      verses: ['Efésios 2:8-9 — "Pois vocês são salvos pela graça..."', 'Romanos 10:9'],
     });
   }
+
+  // ==========================================
+  // NOVOS BLOCOS DE VIDA PRÁTICA E ÉTICA
+  // ==========================================
+
+  if (/(namoro|casar|jugo\s+desigual|relacionamento|noivado)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "relationships",
+      emotion,
+      prayerTopic: "vida sentimental",
+      direct: "A Bíblia vê o relacionamento como algo que deve apontar para Cristo e glorificar a Deus.",
+      context: "Desde Gênesis, vemos que Deus criou a família como a base da sociedade e do cuidado mútuo.",
+      explanation: "O conceito de 'jugo desigual' em 2 Coríntios 6:14 não é sobre superioridade, mas sobre direção: como dois podem caminhar juntos se seguem mestres e princípios diferentes? O propósito do namoro cristão é conhecer o caráter do outro para o casamento, mantendo a pureza e a honra.",
+      application: "Busque alguém que ame a Deus mais do que ama você. Isso garante que a base do seu futuro lar seja construída sobre a Rocha.",
+      verses: ["2 Coríntios 6:14", "Provérbios 31:30", "Gênesis 2:24"],
+    });
+  }
+
+  if (/(div[oó]rcio|pode\s+separar|casamento\s+acabou|recasamento)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "divorce",
+      emotion,
+      prayerTopic: "família e restauração",
+      direct: "O plano original de Deus é a união permanente, mas a Bíblia reconhece a dureza e a quebra do coração humano.",
+      context: "Jesus ensinou que o divórcio não era o plano de Deus (Mateus 19), mas abriu exceções específicas.",
+      explanation: "A maioria dos teólogos identifica duas causas bíblicas que permitem o divórcio: imoralidade sexual (adultério) e o abandono definitivo por parte de um cônjuge não crente. Em todos os outros casos, a reconciliação é o caminho buscado.",
+      application: "Se você está passando por isso, busque aconselhamento pastoral. Deus odeia o divórcio, mas Ele ama profundamente as pessoas divorciadas e pode restaurar corações feridos.",
+      verses: ["Mateus 19:6", "1 Coríntios 7:15", "Malaquias 2:16"],
+    });
+  }
+
+  if (/(depress[aã]o|querer\s+morrer|vontade\s+de\s+sumir|suic[ií]dio|desespero\s+profundo)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "sadness",
+      emotion: "triste",
+      prayerTopic: "esperança e socorro imediato",
+      direct: "Sinto muito que você esteja passando por esse vale tão escuro. Saiba que Deus não te condena por se sentir assim.",
+      context: "Grandes homens de Deus como Elias (1 Reis 19) e o próprio Jó desejaram a morte em momentos de exaustão extrema.",
+      explanation: "A fé não anula nossa biologia ou nossas emoções. Deus cuidou de Elias dando-lhe sono e comida antes de falar com ele. A depressão pode ser uma batalha espiritual, mas também química. Buscar ajuda médica e psicológica não é falta de fé, é usar os meios de Deus para cura.",
+      application: "O seu valor não está na sua produtividade hoje. Peça ajuda a um líder e a um profissional. Não carregue esse fardo sozinho, por favor. (Se precisar conversar com alguém agora, ligue 188 - CVV).",
+      verses: ["Salmos 42:11", "1 Reis 19:4-8", "Salmos 34:17"],
+    });
+  }
+
+  if (/(pornografia|masturba|pureza|sexo\s+antes|fornica|adult[ée]rio)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "general",
+      emotion,
+      prayerTopic: "liberdade e pureza",
+      direct: "A Bíblia trata a sexualidade como um presente de Deus para ser vivenciado dentro da aliança do casamento.",
+      context: "Em um mundo que banaliza o corpo, a visão bíblica é de que fomos comprados por preço e nosso corpo é templo do Espírito.",
+      explanation: "O pecado sexual é descrito como algo que fere o próprio corpo (1 Coríntios 6:18). A luta pela pureza começa na mente e na dependência da graça de Deus, não apenas na força de vontade.",
+      application: "Se você falhou, não se esconda de Deus. A vergonha te mantém no erro, a confissão te liberta. Corte os gatilhos e busque alguém maduro na fé para te ajudar a prestar contas.",
+      verses: ["1 Coríntios 6:18-20", "Mateus 5:28", "1 João 1:9"],
+    });
+  }
+
+  if (/(como\s+jejuar|jejum\s+b[ií]blico|tipos\s+de\s+jejum)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "general",
+      emotion,
+      prayerTopic: "disciplina espiritual",
+      direct: "O jejum é uma disciplina espiritual poderosa para humilhar a carne e sintonizar o espírito com Deus.",
+      context: "Jesus disse 'quando jejuardes', indicando que era uma prática esperada para a igreja.",
+      explanation: "Jejuar não é 'comprar' o favor de Deus ou fazer greve de fome. É esvaziar-se de si mesmo. Pode ser total (água e comida), parcial (como o de Daniel) ou até abstenção de redes sociais, desde que o tempo seja focado em Deus.",
+      application: "Comece com um propósito claro e curto. Beba água e foque o tempo que você estaria comendo em oração e leitura da Bíblia.",
+      verses: ["Mateus 6:17-18", "Isaías 58:6"],
+    });
+  }
+
+  if (/(batalha\s+espiritual|dem[oô]nios|armadura\s+de\s+deus|liberta[cç][aã]o|forças\s+malignas)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "general",
+      emotion,
+      prayerTopic: "proteção e autoridade",
+      direct: "Nossa luta não é contra pessoas, mas contra forças espirituais que tentam nos afastar de Deus e da verdade.",
+      context: "O apóstolo Paulo descreve essa realidade em Efésios 6, chamando a igreja a estar preparada.",
+      explanation: "A vitória já foi conquistada por Cristo na cruz (Colossenses 2:15). Nossa função não é viver com medo do diabo, mas 'permanecer firmes' usando a armadura de Deus: verdade, justiça, evangelho, fé, salvação e a Palavra.",
+      application: "Se você se sente atacado espiritualmente, não dialogue com o medo. Revista-se da verdade de quem você é em Cristo e resista usando a Palavra e a oração.",
+      verses: ["Efésios 6:12", "Tiago 4:7", "Colossenses 2:15"],
+    });
+  }
+
+  if (/(dinheiro|ficar\s+rico|prosperidade|falido|d[ií]vidas)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "general",
+      emotion,
+      prayerTopic: "sabedoria financeira e provisão",
+      direct: "A Bíblia fala muito sobre dinheiro porque ele é um dos maiores testes para onde está o nosso coração.",
+      context: "O dinheiro em si é neutro; o problema apontado nas Escrituras é o amor ao dinheiro (avareza).",
+      explanation: "A 'Teologia da Prosperidade' foca apenas no material, esquecendo que Jesus nos chamou para tomar a cruz. Já a miséria não glorifica a Deus. O princípio bíblico é o trabalho honesto, a generosidade, não ser escravo das dívidas e viver com contentamento.",
+      application: "Evite dívidas que te escravizam. Seja generoso com o que tem hoje. Confie que Deus é seu provedor, seja na abundância ou na escassez.",
+      verses: ["Mateus 6:33", "1 Timóteo 6:10", "Provérbios 22:7"],
+    });
+  }
+
+  if (/(como\s+ler\s+a\s+biblia|entender\s+a\s+biblia|biblia\s+foi\s+alterada|confiar\s+na\s+biblia)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "general",
+      direct: "A Bíblia é a Palavra de Deus inspirada, nossa bússola de fé e prática.",
+      context: "Escrita por cerca de 40 autores ao longo de 1.500 anos, ela conta uma única grande história: o plano de redenção de Deus.",
+      explanation: "Apesar das traduções, os manuscritos originais são preservados com precisão impressionante. O Espírito Santo, que inspirou os autores, é o mesmo que ilumina nosso entendimento hoje ao lermos.",
+      application: "Ore antes de ler. Peça a Deus para abrir seus olhos. Uma ótima dica é começar pelo Evangelho de João e ler um pouco todo dia, sem pressa.",
+      verses: ["2 Timóteo 3:16", "Salmos 119:105", "Hebreus 4:12"],
+    });
+  }
+
+  // ==========================================
+  // BLOCOS DOUTRINÁRIOS EXTRAS (Padrão Antigo + Novos)
+  // ==========================================
 
   if (faithMatcher(lower)) {
     return buildDirectTheologyResponse({
       topic: "faith",
       emotion,
-      direct: [
-        "Fé é confiar em Deus mesmo quando você não tem todas as respostas.",
-        "Fé é se apoiar no caráter de Deus, mesmo quando o caminho ainda não está totalmente claro.",
-      ],
-      context: [
-        'Hebreus 11:1 define fé como "a certeza daquilo que esperamos e a prova das coisas que não vemos."',
-        "Na Bíblia, fé nunca aparece como sentimento vazio. Ela sempre está ligada a confiar em Deus, obedecer a Ele e andar mesmo sem enxergar tudo.",
-      ],
-      explanation: [
-        "Fé não é ausência de dúvida. É escolher confiar em Deus apesar da dúvida. Muitos personagens bíblicos tremeram por dentro, mas continuaram indo.",
-        "Ter fé não significa nunca se questionar. Significa não transformar a falta de controle em desculpa para desistir de Deus.",
-      ],
-      application: [
-        "Fé se fortalece com prática: oração, leitura da Palavra e lembrando do que Deus já fez na sua vida.",
-        "Você não precisa esperar uma fé gigante pra começar. Deus honra até passos pequenos dados com sinceridade.",
-      ],
-      verses: [
-        'Hebreus 11:1 — "A fé é a certeza daquilo que esperamos."',
-        'Marcos 9:24 — "Eu creio; ajuda-me na minha falta de fé."',
-      ],
-      prayer: [
-        "Senhor, aumenta minha fé e me ajuda a confiar em Ti mesmo quando não entendo tudo. Amém.",
-        "Pai, firma meu coração em Ti e me ajuda a não viver guiado só pelo que eu vejo. Amém.",
-      ],
-      followUp: [
-        "Quer que eu te mostre exemplos reais de fé na Bíblia?",
-        "Quer que eu te explique como fortalecer a fé no dia a dia?",
-      ],
+      prayerTopic: "fé",
+      direct: "Fé é confiar em Deus mesmo quando você não tem todas as respostas.",
+      context: 'Hebreus 11:1 define fé como "a certeza daquilo que esperamos e a prova das coisas que não vemos."',
+      explanation: "Fé não é ausência de dúvida, é escolher confiar em Deus apesar da dúvida. Ter fé significa não transformar a falta de controle em desculpa para desistir de Deus.",
+      application: "Fé se fortalece com prática: oração, leitura da Palavra e lembrando do que Deus já fez.",
+      verses: ['Hebreus 11:1', 'Marcos 9:24'],
     });
   }
 
@@ -453,34 +542,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "heaven",
       emotion,
-      direct: [
-        "O céu é a eternidade na presença de Deus, onde não há dor, morte ou sofrimento.",
-        "O céu, biblicamente, é comunhão plena com Deus — a realidade final dos que estão em Cristo.",
-      ],
-      context: [
-        "A Bíblia descreve o céu como o destino final daqueles que pertencem a Cristo.",
-        "Quando a Bíblia fala do céu, ela não fala só de um lugar bonito, mas da plenitude da presença de Deus.",
-      ],
-      explanation: [
-        "Mais do que um lugar físico, o céu é o cumprimento daquilo para o qual fomos criados: estar plenamente reconciliados com Deus.",
-        "O ponto central do céu não é rua de ouro ou imagem bonita, mas o fato de Deus enxugar toda lágrima e estabelecer comunhão perfeita com seu povo.",
-      ],
-      application: [
-        "Pensar no céu não é fugir da realidade, mas viver hoje com propósito eterno.",
-        "A esperança do céu não nos aliena; ela nos fortalece para viver com mais fidelidade aqui.",
-      ],
-      verses: [
-        'João 14:2 — "Na casa de meu Pai há muitas moradas."',
-        'Apocalipse 21:4 — "Não haverá mais morte, nem dor."',
-      ],
-      prayer: [
-        "Senhor, firma meu coração na eternidade e me ajuda a viver com propósito aqui. Amém.",
-        "Pai, me lembra que minha esperança final está em Ti, e não só nas coisas desta vida. Amém.",
-      ],
-      followUp: [
-        "Quer entender melhor como a Bíblia descreve a vida eterna?",
-        "Quer que eu te mostre a diferença entre céu, nova criação e vida eterna?",
-      ],
+      prayerTopic: "esperança eterna",
+      direct: "O céu é a eternidade na presença de Deus, onde não há dor, morte ou sofrimento.",
+      context: "A Bíblia descreve o céu como o destino final daqueles que pertencem a Cristo e foram resgatados por Ele.",
+      explanation: "O ponto central do céu não é a rua de ouro, mas a presença de Deus: Ele enxugará toda lágrima e teremos comunhão perfeita com Ele.",
+      application: "Pensar no céu não é fugir da realidade, mas viver hoje com o propósito de quem sabe para onde está indo.",
+      verses: ['João 14:2', 'Apocalipse 21:4'],
     });
   }
 
@@ -488,34 +555,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "grace",
       emotion,
-      direct: [
-        "Graça é o favor imerecido de Deus — aquilo que recebemos sem ter como pagar.",
-        "Graça é Deus nos dando o que não conseguimos conquistar sozinhos.",
-      ],
-      context: [
-        "No Antigo Testamento, a graça já aparece na paciência e nas promessas de Deus. No Novo Testamento, ela se torna ainda mais clara em Jesus.",
-        "Quando a Bíblia fala de graça, ela está falando da iniciativa amorosa de Deus em favor de quem não merece.",
-      ],
-      explanation: [
-        "Graça não é Deus ignorando o pecado. É Deus pagando o preço que a gente não conseguiria pagar. É amor em ação.",
-        "A graça não apenas perdoa; ela também sustenta, ensina e transforma.",
-      ],
-      application: [
-        "Viver pela graça é parar de tentar 'merecer' Deus e começar a descansar no que Ele já fez.",
-        "Na prática, isso significa trocar desespero e orgulho por gratidão, humildade e confiança.",
-      ],
-      verses: [
-        'Romanos 3:24 — "Sendo justificados gratuitamente por sua graça..."',
-        '2 Coríntios 12:9 — "A minha graça te basta..."',
-      ],
-      prayer: [
-        "Pai, obrigado pela Tua graça. Me ajuda a viver nela sem culpa e sem medo. Amém.",
-        "Senhor, me ensina a descansar na Tua graça mais do que no meu desempenho. Amém.",
-      ],
-      followUp: [
-        "Quer entender a diferença entre graça e misericórdia?",
-        "Quer que eu te mostre como a graça muda a vida prática?",
-      ],
+      prayerTopic: "graça e descanso",
+      direct: "Graça é o favor imerecido de Deus — receber de Deus aquilo que não tínhamos como pagar.",
+      context: "No Novo Testamento, a graça se torna clara na pessoa e obra de Jesus Cristo a nosso favor.",
+      explanation: "Graça não é Deus ignorando o pecado, é Deus pagando o preço que a gente não conseguiria pagar. A graça perdoa, sustenta e transforma nossa vida.",
+      application: "Viver pela graça é parar de tentar 'merecer' o amor de Deus e começar a descansar no que Ele já fez na cruz.",
+      verses: ['Romanos 3:24', '2 Coríntios 12:9'],
     });
   }
 
@@ -523,34 +568,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "sin",
       emotion,
-      direct: [
-        "Pecado é tudo aquilo que nos separa de Deus — em ação, pensamento ou omissão.",
-        "Pecado, biblicamente, não é só fazer coisa errada; é viver desalinhado do coração e da vontade de Deus.",
-      ],
-      context: [
-        "Desde Gênesis 3, a humanidade vive as consequências do pecado. Mas a história bíblica também mostra que Deus providenciou redenção.",
-        "A Bíblia trata o pecado com seriedade porque ele fere nossa relação com Deus, conosco e com os outros.",
-      ],
-      explanation: [
-        "Pecado não é só 'fazer coisas ruins'. É uma ruptura profunda com o propósito de Deus. Por isso Jesus veio tratar a raiz do problema.",
-        "Reconhecer o pecado não é para gerar desespero sem saída, mas para abrir o caminho do arrependimento e do perdão.",
-      ],
-      application: [
-        "Reconhecer o pecado não é motivo de vergonha eterna. É o primeiro passo pra liberdade.",
-        "Se Deus está mostrando algo, não fuja. Leve isso a Cristo, porque nele há perdão e recomeço.",
-      ],
-      verses: [
-        'Romanos 3:23 — "Todos pecaram..."',
-        '1 João 1:9 — "Se confessarmos... ele é fiel e justo para nos perdoar."',
-      ],
-      prayer: [
-        "Senhor, eu reconheço que errei. Mas sei que Teu perdão é maior que qualquer falha minha. Amém.",
-        "Pai, me dá um coração humilde para confessar, receber perdão e caminhar em novidade de vida. Amém.",
-      ],
-      followUp: [
-        "Quer entender como lidar com a culpa de forma saudável?",
-        "Quer que eu te explique a diferença entre pecado, culpa e condenação?",
-      ],
+      prayerTopic: "arrependimento e perdão",
+      direct: "Pecado é tudo aquilo que nos separa de Deus — seja em ação, pensamento ou omissão.",
+      context: "Desde Gênesis 3, a humanidade vive as consequências da queda e da ruptura com Deus.",
+      explanation: "Pecado não é só 'fazer coisas ruins', é uma rebelião do coração contra o Criador. Por isso Jesus veio tratar a raiz do nosso problema na cruz.",
+      application: "Reconhecer o pecado é o primeiro passo para a liberdade. Leve tudo a Cristo, porque nEle há perdão absoluto.",
+      verses: ['Romanos 3:23', '1 João 1:9'],
     });
   }
 
@@ -558,34 +581,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "trinity",
       emotion,
-      direct: [
-        "A Trindade é a doutrina de um só Deus em três pessoas: Pai, Filho e Espírito Santo.",
-        "A fé cristã ensina que Deus é um só em essência, revelado eternamente como Pai, Filho e Espírito Santo.",
-      ],
-      context: [
-        "A fé cristã histórica afirma um único Deus em essência, revelado eternamente como três pessoas distintas.",
-        "A Bíblia não usa a palavra 'Trindade' explicitamente, mas apresenta com clareza o Pai, o Filho e o Espírito Santo como divinos e distintos.",
-      ],
-      explanation: [
-        "Não são três deuses, nem um Deus mudando de forma. É um único Deus, eternamente Pai, Filho e Espírito Santo.",
-        "A Trindade é um mistério profundo, mas não uma contradição: um só Deus, três pessoas distintas, mesma natureza divina.",
-      ],
-      application: [
-        "A Trindade nos ajuda a enxergar a profundidade de quem Deus é e a beleza do relacionamento dentro do próprio ser divino.",
-        "Na prática, isso alimenta reverência: o Deus que te salva não é impessoal, mas plenamente vivo e relacional.",
-      ],
-      verses: [
-        'Mateus 28:19 — "Em nome do Pai, do Filho e do Espírito Santo."',
-        '2 Coríntios 13:13 — bênção trinitária.',
-      ],
-      prayer: [
-        "Senhor, aumenta minha reverência e meu entendimento diante da Tua grandeza. Amém.",
-        "Pai, me ajuda a Te conhecer com mais profundidade, reverência e amor. Amém.",
-      ],
-      followUp: [
-        "Quer que eu te explique a Trindade de forma ainda mais simples?",
-        "Quer que eu te mostre onde isso aparece na Bíblia?",
-      ],
+      prayerTopic: "conhecer a Deus",
+      direct: "A Trindade é a doutrina bíblica de um só Deus em três pessoas distintas: Pai, Filho e Espírito Santo.",
+      context: "A palavra 'Trindade' não está na Bíblia, mas o conceito permeia toda a Escritura desde Gênesis até Apocalipse.",
+      explanation: "Não são três deuses (politeísmo), nem um Deus que muda de máscara. É um único Deus, eternamente revelado em três pessoas coexistentes e coiguais.",
+      application: "A Trindade mostra que Deus, em Si mesmo, é amor e relacionamento. Você foi criado para se relacionar com esse Deus profundo.",
+      verses: ['Mateus 28:19', '2 Coríntios 13:13'],
     });
   }
 
@@ -593,34 +594,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "holy_spirit",
       emotion,
-      direct: [
-        "O Espírito Santo é Deus presente e atuante na vida do cristão.",
-        "O Espírito Santo não é uma energia impessoal — Ele é Deus, agindo e habitando no seu povo.",
-      ],
-      context: [
-        "Jesus prometeu o Consolador, e o Espírito Santo foi derramado para habitar, ensinar, convencer e fortalecer o povo de Deus.",
-        "Na Bíblia, o Espírito Santo aparece desde o começo, mas no Novo Testamento seu papel fica ainda mais claro na vida da igreja e do cristão.",
-      ],
-      explanation: [
-        "Ele não é uma força impessoal. É pessoa divina: consola, guia, ensina, convence do pecado e produz fruto em quem caminha com Deus.",
-        "Ser guiado pelo Espírito não é viver em misticismo vazio, mas em sensibilidade real à presença e à direção de Deus.",
-      ],
-      application: [
-        "A vida cristã não foi feita para ser vivida só na força humana. Busque sensibilidade à direção do Espírito Santo no dia a dia.",
-        "Na prática, isso significa orar, ouvir a Palavra, obedecer com prontidão e cultivar um coração disponível.",
-      ],
-      verses: [
-        'João 14:26 — "O Consolador, o Espírito Santo..."',
-        'Gálatas 5:22 — "O fruto do Espírito é..."',
-      ],
-      prayer: [
-        "Espírito Santo, guia meus pensamentos, minhas escolhas e meu coração hoje. Amém.",
-        "Senhor, torna meu coração sensível à Tua voz e firme na Tua direção. Amém.",
-      ],
-      followUp: [
-        "Quer que eu te explique o que significa ser guiado pelo Espírito?",
-        "Quer que eu te mostre a diferença entre dons e fruto do Espírito?",
-      ],
+      prayerTopic: "direção do Espírito",
+      direct: "O Espírito Santo não é uma energia ou 'força'. Ele é Deus, a terceira pessoa da Trindade.",
+      context: "Jesus prometeu que enviaria o Consolador para habitar em nós, guiar à verdade e nos capacitar.",
+      explanation: "O Espírito Santo convence do pecado, consola, ensina, distribui dons e produz o 'Fruto do Espírito' (amor, alegria, paz...) naqueles que creem.",
+      application: "Não apague o Espírito. Busque ser sensível à voz de Deus orando e lendo a Palavra todos os dias.",
+      verses: ['João 14:26', 'Gálatas 5:22-23'],
     });
   }
 
@@ -628,30 +607,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDebatedTheologyResponse({
       topic: "predestination",
       emotion,
-      direct: [
-        "Esse é um dos temas mais debatidos da teologia cristã — e ambos os lados tentam ser fiéis à Bíblia.",
-        "Predestinação e livre-arbítrio formam uma das discussões mais profundas da fé cristã.",
-      ],
-      context: [
-        "Alguns enfatizam a soberania de Deus na salvação; outros enfatizam mais a responsabilidade humana em responder ao chamado divino.",
-        "Ao longo da história da igreja, esse tema foi tratado de formas diferentes por cristãos sérios e comprometidos com as Escrituras.",
-      ],
-      explanation: [
-        "Textos como Efésios 1 e Romanos 8 são usados por quem destaca predestinação. Já textos de convite, escolha e responsabilidade são usados por quem enfatiza livre-arbítrio.",
-        "As duas posições tentam honrar o texto bíblico: uma sublinha a soberania divina, a outra sublinha a responsabilidade humana. O mistério existe porque a Bíblia fala dos dois aspectos.",
-      ],
-      application: [
-        "Mais importante que vencer debate é responder a Deus com fé, reverência e humildade. Confie no caráter de Deus.",
-        "Na prática, esse tema deve gerar menos arrogância e mais adoração, menos discussão vazia e mais rendição a Deus.",
-      ],
-      verses: [
-        'Efésios 1:5 — "Nos predestinou para ele..."',
-        'Josué 24:15 — "Escolhei hoje a quem sirvais."',
-      ],
-      prayer: [
-        "Senhor, me dá humildade diante do que é profundo e fidelidade diante do que já está claro. Amém.",
-        "Pai, guarda meu coração da soberba e me ensina a descansar na Tua sabedoria. Amém.",
-      ],
+      prayerTopic: "sabedoria e humildade",
+      direct: "Esse é um dos mistérios mais debatidos da teologia cristã: a Soberania de Deus versus a Responsabilidade Humana.",
+      context: "Ao longo dos séculos, correntes como o Calvinismo e o Arminianismo tentaram explicar essa tensão bíblica.",
+      explanation: "Textos como Efésios 1 mostram que Deus escolhe e predestina. Textos como Josué 24 mostram que o homem tem o dever de escolher a Deus. As duas verdades estão na Bíblia e devemos abraçar ambas com humildade.",
+      application: "Não deixe a teologia te tornar arrogante. Agradeça a Deus por Sua graça soberana e pregue o evangelho a todos, sabendo que quem crer será salvo.",
+      verses: ['Efésios 1:4-5', 'João 3:16'],
     });
   }
 
@@ -659,170 +620,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "baptism",
       emotion,
-      direct: [
-        "Batismo é um sinal público de fé e identificação com Cristo.",
-        "Batismo é um ato visível de obediência que aponta para a nova vida em Jesus.",
-      ],
-      context: [
-        "No Novo Testamento, ele aparece ligado à conversão e arrependimento. É um ato de obediência e testemunho.",
-        "A igreja primitiva tratava o batismo com seriedade porque ele comunicava publicamente a união com Cristo.",
-      ],
-      explanation: [
-        "Simboliza morte para a velha vida e nova vida em Cristo. Não é o que salva, mas é parte importante da caminhada cristã.",
-        "O batismo não substitui a fé, mas a expressa de forma visível, comunitária e obediente.",
-      ],
-      application: [
-        "Se você crê em Cristo e ainda não foi batizado, vale tratar isso com seriedade e conversar com sua igreja.",
-        "Na prática, o batismo lembra que seguir Jesus não é só uma convicção privada — também é testemunho público.",
-      ],
-      verses: [
-        'Romanos 6:4 — "Fomos sepultados com ele na morte pelo batismo..."',
-        'Atos 2:38 — "Arrependam-se e cada um de vocês seja batizado..."',
-      ],
-      prayer: [
-        "Senhor, me ajuda a viver de forma pública aquilo que creio no meu coração. Amém.",
-        "Pai, que minha fé não seja só interna, mas também visível em obediência. Amém.",
-      ],
-      followUp: [
-        "Quer entender as diferentes formas de batismo nas tradições cristãs?",
-        "Quer que eu te explique a relação entre fé, batismo e nova vida?",
-      ],
-    });
-  }
-
-  if (/justifica[cç][aã]o/.test(lower)) {
-    return buildDirectTheologyResponse({
-      topic: "justification",
-      emotion,
-      direct: [
-        "Justificação é o ato de Deus declarar justo quem crê em Cristo.",
-        "Justificação é quando Deus aceita o pecador por causa de Cristo, e não por causa do próprio mérito.",
-      ],
-      context: [
-        "Paulo desenvolve isso especialmente em Romanos: somos declarados justos não por obras, mas pela fé no sacrifício de Jesus.",
-        "No coração do evangelho está essa verdade: o homem não se salva por desempenho, mas pela obra de Cristo recebida pela fé.",
-      ],
-      explanation: [
-        "Não é que Deus finge que somos perfeitos. Ele nos vê através de Cristo. É como se a justiça de Jesus fosse creditada na nossa conta.",
-        "Justificação não é transformação moral progressiva — isso tem mais a ver com santificação. Aqui, o foco é aceitação diante de Deus por meio de Cristo.",
-      ],
-      application: [
-        "Isso muda tudo: você não precisa viver tentando provar valor pra Deus. Já foi aceito em Cristo.",
-        "Na prática, isso combate tanto o orgulho religioso quanto o desespero espiritual.",
-      ],
-      verses: [
-        'Romanos 5:1 — "Tendo sido justificados pela fé, temos paz com Deus."',
-        'Romanos 3:28 — "O homem é justificado pela fé..."',
-      ],
-      prayer: [
-        "Pai, obrigado por me aceitar não pelo que eu faço, mas pelo que Jesus fez por mim. Amém.",
-        "Senhor, me livra da escravidão do desempenho e firma meu coração na obra de Cristo. Amém.",
-      ],
-      followUp: [
-        "Quer que eu compare justificação com santificação de forma simples?",
-        "Quer que eu te mostre por que isso traz descanso ao coração?",
-      ],
-    });
-  }
-
-  if (/santifica[cç][aã]o/.test(lower)) {
-    return buildDirectTheologyResponse({
-      topic: "sanctification",
-      emotion,
-      direct: [
-        "Santificação é o processo de ser transformado à imagem de Cristo ao longo da vida.",
-        "Santificação é a obra contínua de Deus em nós, moldando nosso caráter para parecer mais com Jesus.",
-      ],
-      context: [
-        "Diferente da justificação, a santificação é progressiva. É o Espírito Santo trabalhando em nós dia após dia.",
-        "A Bíblia mostra que quem está em Cristo não apenas é perdoado, mas também começa a ser transformado.",
-      ],
-      explanation: [
-        "Não é perfeição instantânea. É crescimento. É querer ser mais parecido com Jesus em cada decisão, cada pensamento, cada atitude.",
-        "Santificação não significa ausência total de luta, mas presença real de transformação, arrependimento e maturidade crescente.",
-      ],
-      application: [
-        "Santificação não é esforço solitário — é cooperação com o Espírito Santo. Leia a Palavra, ore, esteja em comunidade.",
-        "Na prática, isso significa perseverar mesmo quando o processo parece lento.",
-      ],
-      verses: [
-        '1 Tessalonicenses 4:3 — "A vontade de Deus é a santificação de vocês."',
-        'Filipenses 1:6 — "Aquele que começou boa obra em vocês vai completá-la."',
-      ],
-      prayer: [
-        "Senhor, continua me transformando. Eu quero parecer mais com Jesus a cada dia. Amém.",
-        "Pai, não me deixa desistir do processo que o Senhor mesmo começou em mim. Amém.",
-      ],
-      followUp: [
-        "Quer que eu te explique práticas que ajudam na santificação?",
-        "Quer que eu compare santificação com justificação de forma bem simples?",
-      ],
-    });
-  }
-
-  if (/regenera[cç][aã]o|novo\s+nascimento|nascer\s+de\s+novo/.test(lower)) {
-    return buildDirectTheologyResponse({
-      topic: "regeneration",
-      emotion,
-      direct: [
-        "Regeneração é o novo nascimento operado por Deus no coração humano.",
-        "Nascer de novo é receber vida espiritual nova pela ação de Deus.",
-      ],
-      context: [
-        "Jesus falou sobre isso com Nicodemos em João 3, mostrando que ninguém entra no Reino apenas por tradição, religião ou esforço.",
-        "O novo nascimento é central porque o cristianismo não trata só de mudança externa, mas de nova vida interior.",
-      ],
-      explanation: [
-        "Ser regenerado é receber nova vida espiritual. Não é só melhorar hábitos, mas ser transformado de dentro pra fora pela ação de Deus.",
-        "A regeneração aponta para algo que Deus faz em nós, produzindo vida, sensibilidade espiritual e novo desejo por Ele.",
-      ],
-      application: [
-        "Isso mostra que o cristianismo não é maquiagem moral. É vida nova em Cristo.",
-        "Na prática, essa verdade nos chama a depender menos de aparência religiosa e mais da ação real de Deus no coração.",
-      ],
-      verses: [
-        'João 3:3 — "Se alguém não nascer de novo..."',
-        'Tito 3:5 — "mediante o lavar regenerador..."',
-      ],
-      prayer: [
-        "Senhor, continua renovando meu coração e produzindo em mim vida nova. Amém.",
-        "Pai, faz em mim aquilo que só o Senhor pode fazer: vida nova de dentro pra fora. Amém.",
-      ],
-      followUp: [
-        "Quer que eu te explique a diferença entre regeneração, conversão e santificação?",
-        "Quer que eu te mostre por que Jesus falou isso para Nicodemos?",
-      ],
-    });
-  }
-
-  if (/d[ií]zimo|oferta/.test(lower)) {
-    return buildDebatedTheologyResponse({
-      topic: "tithe",
-      emotion,
-      direct: [
-        "O dízimo é um tema com diferentes interpretações entre os cristãos.",
-        "Quando o assunto é dízimo, cristãos bíblicos concordam na generosidade, mas divergem em alguns detalhes de aplicação.",
-      ],
-      context: [
-        "No Antigo Testamento, o dízimo era parte da Lei mosaica. No Novo Testamento, Paulo enfatiza generosidade voluntária.",
-        "Ao longo da história cristã, alguns mantiveram o dízimo como princípio contínuo; outros destacaram mais a contribuição voluntária e alegre.",
-      ],
-      explanation: [
-        "Alguns entendem que o dízimo continua como princípio; outros enfatizam a oferta generosa e voluntária como modelo neotestamentário. Ambos concordam que Deus valoriza um coração generoso.",
-        "A divergência normalmente não está em dar ou não dar, mas em como entender a continuidade da prática do dízimo na nova aliança.",
-      ],
-      application: [
-        "Mais do que percentual, Deus olha pro coração. Dê com alegria, com propósito, e confie na provisão dEle.",
-        "Na prática, generosidade bíblica nunca deve nascer de manipulação, medo ou barganha com Deus.",
-      ],
-      verses: [
-        'Malaquias 3:10 — "Trazei todos os dízimos..."',
-        '2 Coríntios 9:7 — "Cada um dê conforme determinou em seu coração..."',
-      ],
-      prayer: [
-        "Senhor, me ensina a ser generoso como Tu és comigo. Amém.",
-        "Pai, livra meu coração da avareza e me ensina a contribuir com alegria. Amém.",
-      ],
+      prayerTopic: "obediência",
+      direct: "Batismo é um mandamento de Jesus, um sinal público e visível de uma realidade interna e invisível.",
+      context: "No Novo Testamento, ele sempre aparece ligado à conversão, arrependimento e nova vida.",
+      explanation: "O batismo nas águas simboliza o sepultamento da velha natureza (ao descer à água) e a ressurreição para uma nova vida com Cristo (ao subir da água). Não é o que te salva, mas é a evidência de quem já foi salvo.",
+      application: "Se você entregou sua vida a Jesus, procure uma igreja local e seja batizado em obediência ao Mestre.",
+      verses: ['Mateus 28:19', 'Romanos 6:4'],
     });
   }
 
@@ -830,65 +633,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "hell",
       emotion,
-      direct: [
-        "O inferno é descrito na Bíblia como o lugar de separação eterna de Deus.",
-        "Biblicamente, o inferno aparece como juízo final e separação definitiva da presença favorável de Deus.",
-      ],
-      context: [
-        "Jesus falou mais sobre o inferno do que qualquer outro personagem bíblico. Ele usou termos como 'Geena' e 'trevas exteriores'.",
-        "A Bíblia trata esse tema com sobriedade porque ele revela a seriedade do pecado, da justiça divina e da necessidade da salvação.",
-      ],
-      explanation: [
-        "A essência do inferno não é apenas uma imagem de sofrimento, mas a consequência final da rejeição de Deus.",
-        "Jesus usa linguagem forte para mostrar que não se trata de curiosidade escatológica, mas de uma realidade espiritual séria.",
-      ],
-      application: [
-        "A existência do inferno mostra a seriedade das nossas escolhas — mas também a grandeza da salvação que Deus oferece em Cristo.",
-        "Esse tema deve nos conduzir menos a sensacionalismo e mais a reverência, urgência espiritual e gratidão pelo evangelho.",
-      ],
-      verses: [
-        'Mateus 25:46 — "Irão estes para o castigo eterno..."',
-        'João 3:16 — "Para que todo o que nele crê não pereça..."',
-      ],
-      prayer: [
-        "Senhor, obrigado pela salvação em Cristo. Me ajuda a viver com essa urgência no coração. Amém.",
-        "Pai, firma meu coração no evangelho e me livra de tratar coisas eternas com superficialidade. Amém.",
-      ],
-      followUp: [
-        "Quer entender melhor o que Jesus ensinou sobre a eternidade?",
-        "Quer que eu te mostre a diferença entre vida eterna, juízo e esperança cristã?",
-      ],
-    });
-  }
-
-  if (/apocalipse|arrebatamento|fim\s+dos\s+tempos/.test(lower)) {
-    return buildDebatedTheologyResponse({
-      topic: "eschatology",
-      emotion,
-      direct: [
-        "Escatologia é um tema com múltiplas interpretações entre cristãos sinceros.",
-        "Quando o assunto é fim dos tempos, existe acordo sobre a volta de Cristo, mas não sobre todos os detalhes.",
-      ],
-      context: [
-        "O livro de Apocalipse usa linguagem simbólica e profética. Sobre o arrebatamento, cristãos divergem quanto ao momento e ao modo.",
-        "Ao longo da história, surgiram diferentes linhas escatológicas tentando organizar os textos bíblicos sobre a consumação final.",
-      ],
-      explanation: [
-        "Existem visões pré-tribulacionistas, pós-tribulacionistas, amilenistas e outras. Todas tentam ler a Bíblia com seriedade, mas destacam pontos diferentes.",
-        "O ponto central não é decorar cronologia, e sim entender que Cristo voltará, Deus julgará com justiça e seu povo viverá em esperança.",
-      ],
-      application: [
-        "O mais importante não é acertar a cronologia, mas viver preparado — com fé, amor e esperança em Cristo.",
-        "Na prática, escatologia saudável produz vigilância, consolo e santidade, não paranoia.",
-      ],
-      verses: [
-        '1 Tessalonicenses 4:17 — "Seremos arrebatados..."',
-        'Apocalipse 21:4 — "Ele enxugará dos seus olhos toda lágrima."',
-      ],
-      prayer: [
-        "Senhor, me ajuda a viver cada dia com esperança, vigilância e fidelidade. Amém.",
-        "Pai, livra meu coração de medo vazio e firma minha esperança na volta de Cristo. Amém.",
-      ],
+      prayerTopic: "urgência espiritual",
+      direct: "A Bíblia trata o inferno de forma muito séria como o lugar de separação eterna de Deus.",
+      context: "Curiosamente, Jesus foi quem mais falou sobre o inferno nas Escrituras, usando termos fortes para alertar a humanidade.",
+      explanation: "O inferno não é o 'reino do diabo', mas o local do juízo final para todos que rejeitarem a graça de Deus. A essência de seu tormento é o total isolamento do amor, luz e bondade do Criador.",
+      application: "Falar de inferno não é para gerar terror sem propósito, mas para nos mostrar a grandeza do sacrifício de Jesus que nos livrou dessa condenação.",
+      verses: ['Mateus 25:46', 'Apocalipse 20:15'],
     });
   }
 
@@ -896,34 +646,12 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "repentance",
       emotion,
-      direct: [
-        "Arrependimento é mudar de direção — é reconhecer o erro e voltar pra Deus.",
-        "Arrependimento não é só remorso; é mudança de mente, coração e caminho diante de Deus.",
-      ],
-      context: [
-        "A palavra grega 'metanoia' significa literalmente 'mudança de mente'. É mais do que remorso — é transformação.",
-        "Na Bíblia, arrependimento aparece como resposta genuína à verdade de Deus e à ação do Espírito no coração.",
-      ],
-      explanation: [
-        "Arrependimento bíblico não é apenas sentir culpa. É abandonar o caminho errado e caminhar na direção de Deus.",
-        "Existe diferença entre sentir peso e de fato se voltar pra Deus. Arrependimento envolve sinceridade, humildade e novo rumo.",
-      ],
-      application: [
-        "Se algo no seu coração te incomoda, isso pode ser o Espírito te chamando. Não ignore — responda.",
-        "Na prática, arrependimento começa com honestidade diante de Deus e segue com passos reais de mudança.",
-      ],
-      verses: [
-        'Atos 3:19 — "Arrependam-se e voltem-se para Deus..."',
-        '2 Crônicas 7:14 — "Se o meu povo... se humilhar..."',
-      ],
-      prayer: [
-        "Pai, me dá coragem pra mudar de direção onde eu preciso. Eu quero andar contigo. Amém.",
-        "Senhor, produz em mim arrependimento verdadeiro, e não só remorso passageiro. Amém.",
-      ],
-      followUp: [
-        "Quer conversar sobre algo específico que está no seu coração?",
-        "Quer que eu te explique a diferença entre culpa, arrependimento e condenação?",
-      ],
+      prayerTopic: "coração quebrantado",
+      direct: "Arrependimento não é só chorar pelo que fez; é mudar a direção dos seus passos de volta para Deus.",
+      context: "A primeira mensagem de Jesus no ministério foi: 'Arrependam-se, pois o Reino dos céus está próximo'.",
+      explanation: "No grego (Metanoia), significa mudança de mente. Remorso é ficar triste pelas consequências do pecado (como Judas); arrependimento é odiar o pecado e buscar a santidade de Cristo (como Pedro).",
+      application: "Confesse a Deus aquilo que você tem escondido. O sangue de Jesus perdoa todo e qualquer pecado quando há um coração quebrantado.",
+      verses: ['Atos 3:19', '2 Crônicas 7:14'],
     });
   }
 
@@ -931,91 +659,126 @@ function matchTheological(q: string, emotion?: UserEmotion | null): BibleRespons
     return buildDirectTheologyResponse({
       topic: "church",
       emotion,
-      direct: [
-        "Igreja não é um prédio — é o corpo de Cristo, formado por todos os que creem nEle.",
-        "Biblicamente, igreja é a comunidade dos que foram chamados por Deus para viver em Cristo e com Cristo.",
-      ],
-      context: [
-        "No Novo Testamento, 'ekklesia' significa 'os chamados para fora'. A igreja é a comunidade dos que seguem Jesus.",
-        "A igreja local aparece nas Escrituras como espaço de ensino, comunhão, adoração, serviço e crescimento mútuo.",
-      ],
-      explanation: [
-        "A igreja local é onde cristãos se reúnem pra adorar, aprender, servir e crescer juntos. Não é perfeita — mas é o plano de Deus pra comunidade.",
-        "Seguir Jesus sem igreja costuma parecer mais confortável, mas a Bíblia aponta para uma fé vivida em comunhão e mutualidade.",
-      ],
-      application: [
-        "Se você está longe da igreja, considere voltar. Se está na igreja mas desanimado, lembre que o centro não é a instituição — é Jesus.",
-        "Na prática, vale buscar uma comunidade saudável, bíblica e madura, onde haja graça, verdade e discipulado real.",
-      ],
-      verses: [
-        'Mateus 16:18 — "Edificarei a minha igreja."',
-        'Hebreus 10:25 — "Não deixemos de congregar-nos."',
-      ],
-      prayer: [
-        "Senhor, me ajuda a encontrar meu lugar no Teu corpo. Amém.",
-        "Pai, cura meu olhar sobre a igreja e me ensina a viver em comunhão com o Teu povo. Amém.",
-      ],
-      followUp: [
-        "Quer conversar sobre como encontrar uma boa igreja?",
-        "Quer que eu te diga sinais de uma comunidade saudável biblicamente?",
-      ],
+      prayerTopic: "comunhão",
+      direct: "Igreja não é um prédio ou um CNPJ; é o Corpo vivo de Cristo na terra, formado por todos os salvos.",
+      context: "Jesus instituiu a igreja e disse que as portas do inferno não prevaleceriam contra ela.",
+      explanation: "A igreja local é imperfeita porque é feita de pecadores perdoados. Mas ela é o meio que Deus escolheu para nos pastorear, ensinar, proteger e nos fazer crescer em amor uns pelos outros.",
+      application: "Não seja um cristão isolado. O isolamento esfria a fé. Encontre uma igreja que pregue a Bíblia e sirva a seus irmãos.",
+      verses: ['Mateus 16:18', 'Hebreus 10:25'],
+    });
+  }
+
+  // ==========================================
+  // BLOCO FACTUAL (LIVROS E PERSONAGENS)
+  // ==========================================
+
+  if (/(g[eê]nesis|no\s+princ[ií]pio|cria[cç][aã]o|ad[aã]o\s+e\s+eva)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "factual",
+      direct: "Gênesis é o livro das origens. O primeiro livro da Bíblia.",
+      context: "Escrito por Moisés, ele estabelece as bases de toda a teologia cristã.",
+      explanation: "Narra a criação do mundo, a queda do homem no pecado, o dilúvio e a história dos patriarcas (Abraão, Isaque, Jacó e José), mostrando o início do plano de redenção de Deus.",
+      application: "Gênesis nos lembra que Deus é soberano sobre a criação e cumpre Suas promessas, mesmo quando os homens falham.",
+      verses: ["Gênesis 1:1", "Gênesis 12:1-3"],
+    });
+  }
+
+  if (/(apocalipse|fim\s+do\s+mundo|anticristo|besta)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "factual",
+      direct: "Apocalipse significa 'Revelação'. É o último livro da Bíblia, escrito pelo apóstolo João.",
+      context: "Foi escrito enquanto João estava exilado na ilha de Patmos, revelando a glória final de Cristo.",
+      explanation: "O livro usa uma linguagem altamente simbólica e profética para descrever os juízos de Deus, a queda do mal, a volta de Jesus em glória e o estabelecimento de Novos Céus e Nova Terra.",
+      application: "O Apocalipse não foi escrito para assustar, mas para consolar a igreja sofredora: no final, Cristo vence e enxugará toda lágrima.",
+      verses: ["Apocalipse 1:1", "Apocalipse 21:3-4"],
+    });
+  }
+
+  if (/(moises|mois[ée]s|egito|mar\s+vermelho|dez\s+mandamentos)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "factual",
+      direct: "Moisés foi o líder escolhido por Deus para libertar os israelitas da escravidão no Egito.",
+      context: "Sua história, registrada em Êxodo, mostra um homem que passou 40 anos no palácio, 40 anos no deserto aprendendo humildade, e 40 anos liderando o povo.",
+      explanation: "Ele foi o mediador da Antiga Aliança, recebendo os Dez Mandamentos no Monte Sinai. Ele aponta para Jesus, que seria o Mediador de uma Nova e Superior Aliança.",
+      application: "A vida de Moisés nos prova que Deus capacita aqueles que Ele chama, usando até mesmo nossas fraquezas e nosso passado para Sua glória.",
+      verses: ["Êxodo 3:14", "Hebreus 11:24-26"],
+    });
+  }
+
+  if (/(davi|golias|salmista|rei\s+davi)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "factual",
+      direct: "Davi foi o maior rei de Israel e um ancestral de Jesus Cristo, conhecido como o 'homem segundo o coração de Deus'.",
+      context: "Ele derrotou o gigante Golias quando jovem e mais tarde se tornou o rei mais próspero da nação.",
+      explanation: "Davi não era perfeito; ele cometeu pecados gravíssimos (como adultério com Bate-Seba). No entanto, o que o definia era o seu rápido e profundo arrependimento diante de Deus. Ele também escreveu grande parte dos Salmos.",
+      application: "Podemos aprender com Davi a amar a presença de Deus apaixonadamente e a nunca esconder nossos pecados, mas confessá-los com dor genuína.",
+      verses: ["1 Samuel 16:7", "Salmos 51:1-2", "Atos 13:22"],
+    });
+  }
+
+  if (/(abra[aã]o|isaque|jac[oó]|patriarca)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "factual",
+      direct: "Abraão é considerado o 'Pai da Fé' e o ancestral do povo de Israel.",
+      context: "Deus o chamou em Gênesis 12 para deixar sua terra e sua parentela em troca de uma promessa de abençoar todas as nações da terra através dele.",
+      explanation: "Apesar de ter falhado algumas vezes, Abraão creu em Deus quando Ele prometeu um filho (Isaque) mesmo ele e Sara sendo idosos. Essa fé lhe foi imputada como justiça (Romanos 4).",
+      application: "Andar com Deus requer deixar nossa zona de conforto e confiar que o que Deus prometeu, Ele é poderoso para cumprir.",
+      verses: ["Gênesis 12:1-3", "Hebreus 11:8"],
+    });
+  }
+
+  if (/(pedro|sim[aã]o\s+pedro|ap[oó]stolo\s+pedro)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "factual",
+      direct: "Pedro foi um dos 12 apóstolos de Jesus, sendo parte do círculo mais íntimo de Cristo.",
+      context: "Pescador de profissão, era conhecido por ser impulsivo, falando e agindo antes de pensar.",
+      explanation: "Pedro declarou Jesus como o Cristo, andou sobre as águas, mas também negou a Jesus três vezes na noite da crucificação. Jesus o restaurou e ele se tornou o grande pregador de Pentecostes em Atos 2.",
+      application: "A história de Pedro é a prova de que o fracasso não é o fim para quem anda com Jesus. Há restauração e propósito após a queda.",
+      verses: ["Mateus 16:16", "João 21:15-17"],
+    });
+  }
+
+  if (/(jo[aã]o\s+batista)/.test(lower)) {
+    return buildDirectTheologyResponse({
+      topic: "factual",
+      direct: "João Batista foi o profeta que preparou o caminho para o ministério de Jesus.",
+      context: "Primo de Jesus, ele pregava no deserto do Jordão chamando o povo ao arrependimento.",
+      explanation: "Seu ministério era um divisor de águas entre o Antigo e Novo Testamento. Quando viu Jesus, declarou: 'Eis o Cordeiro de Deus que tira o pecado do mundo!'. Foi ele quem batizou Jesus nas águas.",
+      application: "A atitude de João deve ser a nossa: 'É necessário que Ele cresça e que eu diminua'.",
+      verses: ["João 1:29", "João 3:30"],
     });
   }
 
   return null;
 }
 
+// ==========================================
+// OUTROS MATCHERS E LÓGICA FINAL
+// ==========================================
+
 function matchFactual(q: string): BibleResponse | null {
   const lower = q.toLowerCase();
-
-  if (/rei\s+(antes|anterior)\s+(d[eo]\s+)?davi|antes\s+d[eo]\s+davi/.test(lower)) {
-    return {
-      acolhimento: maybePrefixWithMemory("factual") + "Foi Saul. 😊",
-      contexto:
-        "O primeiro rei de Israel foi Saul, da tribo de Benjamim. Ele foi ungido pelo profeta Samuel a pedido do povo.",
-      explicacao:
-        "Saul reinou por cerca de 40 anos, mas desobedeceu a Deus repetidamente. Quando Deus o rejeitou como rei, enviou Samuel para ungir Davi.",
-      aplicacao:
-        "A história de Saul nos ensina que posição sem obediência não se sustenta.",
-      versiculos: [
-        '1 Samuel 15:22 — "Obedecer é melhor do que sacrificar."',
-        '1 Samuel 16:7 — "O Senhor não vê como o homem vê..."',
-      ],
-      oracao: "Senhor, me dá um coração obediente como o de Davi. Amém.",
-      followUp: "Quer saber mais sobre a diferença entre Saul e Davi?",
-    };
-  }
 
   if (/quantos\s+livros/.test(lower)) {
     return {
       acolhimento: maybePrefixWithMemory("factual") + "A Bíblia tem 66 livros. 😊",
-      contexto:
-        "São 39 no Antigo Testamento e 27 no Novo Testamento. Escrita por cerca de 40 autores ao longo de aproximadamente 1.500 anos.",
-      explicacao:
-        "O Antigo Testamento reúne Lei, Históricos, Poéticos e Proféticos. O Novo Testamento traz Evangelhos, Atos, Cartas e Apocalipse.",
-      aplicacao:
-        "Começar por João, Salmos e Provérbios costuma ajudar muito quem está iniciando.",
-      versiculos: [
-        '2 Timóteo 3:16 — "Toda a Escritura é inspirada por Deus..."',
-      ],
-      oracao: "Deus, me ajuda a amar a Tua Palavra cada dia mais. Amém.",
+      contexto: "São 39 no Antigo Testamento e 27 no Novo Testamento. Escrita por cerca de 40 autores ao longo de aproximadamente 1.500 anos.",
+      explicacao: "O Antigo Testamento reúne Lei, Históricos, Poéticos e Proféticos. O Novo Testamento traz Evangelhos, Atos, Cartas e Apocalipse.",
+      aplicacao: "Começar por João, Salmos e Provérbios costuma ajudar muito quem está iniciando.",
+      versiculos: ['2 Timóteo 3:16'],
+      oracao: prayerSuggestion("amor pela Palavra"),
       followUp: "Quer que eu te sugira um plano de leitura simples?",
     };
   }
 
-  if (/quantos\s+(disc[ií]pulos|ap[oó]stolos)|12\s+disc[ií]pulos|doze\s+disc/.test(lower)) {
+  if (/quantos\s+(disc[ií]pulos|ap[oó]stolos)|12\s+disc[ií]pulos/.test(lower)) {
     return {
       acolhimento: maybePrefixWithMemory("factual") + "Jesus escolheu 12 discípulos. 😊",
-      contexto:
-        "Os doze foram chamados para andar com Jesus, aprender com Ele e depois anunciar o evangelho.",
-      explicacao:
-        "Depois da traição de Judas, Matias foi escolhido. Mais tarde, Paulo também foi chamado como apóstolo em sentido missionário.",
-      aplicacao:
-        "Eram pessoas comuns. Deus não escolhe os capacitados apenas — Ele também capacita os escolhidos.",
-      versiculos: [
-        'Marcos 3:14 — "Designou doze, para que estivessem com ele..."',
-      ],
-      oracao: "Senhor, usa a minha vida para espalhar o Teu amor. Amém.",
+      contexto: "Os doze foram chamados para andar com Jesus, aprender com Ele e depois anunciar o evangelho.",
+      explicacao: "Depois da traição de Judas, Matias foi escolhido. Mais tarde, Paulo também foi chamado como apóstolo em sentido missionário.",
+      aplicacao: "Eram pessoas comuns. Deus não escolhe apenas os capacitados — Ele também capacita os escolhidos.",
+      versiculos: ['Marcos 3:14'],
+      oracao: prayerSuggestion("disponibilidade para servir"),
       followUp: "Quer conhecer a história de algum discípulo em particular?",
     };
   }
@@ -1023,17 +786,11 @@ function matchFactual(q: string): BibleResponse | null {
   if (/onde\s+jesus\s+nasceu|nascimento\s+de\s+jesus/.test(lower)) {
     return {
       acolhimento: maybePrefixWithMemory("factual") + "Jesus nasceu em Belém de Judá. 😊",
-      contexto:
-        "Maria e José estavam lá por causa de um censo ordenado por César Augusto.",
-      explicacao:
-        "O nascimento em Belém já havia sido profetizado em Miquéias 5:2. Jesus veio ao mundo da forma mais humilde possível.",
-      aplicacao:
-        "Deus não se orienta por status. A forma como Jesus veio ao mundo já revela isso.",
-      versiculos: [
-        'Miquéias 5:2 — "De ti me sairá o que governará em Israel."',
-        'Lucas 2:7 — "E o deitou em uma manjedoura."',
-      ],
-      oracao: "Senhor Jesus, obrigado por ter vindo ao mundo por mim. Amém.",
+      contexto: "Maria e José estavam lá por causa de um censo ordenado pelo império romano.",
+      explicacao: "O nascimento em Belém já havia sido profetizado no Antigo Testamento. Jesus veio ao mundo da forma mais humilde possível, nascendo numa manjedoura.",
+      aplicacao: "A forma como Jesus veio ao mundo revela que a verdadeira grandeza no Reino de Deus começa com a humildade.",
+      versiculos: ['Miquéias 5:2', 'Lucas 2:7'],
+      oracao: prayerSuggestion("gratidão por Jesus"),
       followUp: "Quer saber mais sobre a infância de Jesus?",
     };
   }
@@ -1041,7 +798,7 @@ function matchFactual(q: string): BibleResponse | null {
   return null;
 }
 
-function matchEmotional(q: string, emotion?: UserEmotion | null): BibleResponse | null {
+function matchEmotional(q: string, emotion?: NormalizedEmotion): BibleResponse | null {
   const lower = q.toLowerCase();
 
   if (/ansio|preocup|nervos|afli[cç][aã]o|desespero|p[aâ]nico/.test(lower) || emotion === "ansioso") {
@@ -1050,26 +807,15 @@ function matchEmotional(q: string, emotion?: UserEmotion | null): BibleResponse 
         "Eu sinto que isso está pesado pra você… mas você não está sozinho. 💙",
         "Parece que sua mente está cansada de carregar tanta coisa. Vamos com calma. 💙",
       ]),
-      contexto:
-        "Deus não ignora sua ansiedade. Ele te convida a lançar sobre Ele tudo que te pesa.",
-      explicacao:
-        "Ansiedade é real, e Deus entende. Ele não pede que você seja forte o tempo todo — pede que você confie nEle e caminhe um passo de cada vez.",
+      contexto: "Deus não ignora sua ansiedade. Ele te convida a lançar sobre Ele tudo que te pesa.",
+      explicacao: "Ansiedade é real, e Deus entende. Ele não pede que você seja forte o tempo todo — pede que você confie nEle e caminhe um passo de cada vez.",
       aplicacao: pick([
         "Respira fundo agora. Inspira contando até 4, segura 4, solta 4. Faz isso 3 vezes.",
-        "Tenta diminuir o ritmo por um instante. Olha ao redor e me diz mentalmente 3 coisas que você consegue ver agora.",
+        "Tenta diminuir o ritmo por um instante. Olha ao redor e nomeie mentalmente 3 coisas que você consegue ver agora.",
       ]),
-      versiculos: [
-        'Filipenses 4:6-7 — "Não andem ansiosos por coisa alguma…" ',
-        '1 Pedro 5:7 — "Lancem sobre ele toda a sua ansiedade."',
-      ],
-      oracao: pick([
-        "Senhor, acalma meu coração. Eu entrego o que não consigo controlar. Amém.",
-        "Pai, segura minha mente, organiza meu interior e me cobre com Tua paz. Amém.",
-      ]),
-      followUp: pick([
-        "Quer que eu te guie em um exercício de respiração agora?",
-        "Quer que eu te mostre um versículo específico para ansiedade?",
-      ]),
+      versiculos: ['Filipenses 4:6-7', '1 Pedro 5:7'],
+      oracao: "Se você quiser, eu posso fazer uma oração curta com você agora para ansiedade.",
+      followUp: "Quer que eu te mostre um versículo específico para ansiedade?",
     };
   }
 
@@ -1079,26 +825,12 @@ function matchEmotional(q: string, emotion?: UserEmotion | null): BibleResponse 
         "Eu entendo esse medo… e tá tudo bem admitir isso. 💙",
         "Perguntas e situações assim realmente podem assustar. Você não precisa atravessar isso sozinho. 💙",
       ]),
-      contexto:
-        "Deus está com você — mesmo quando tudo parece incerto.",
-      explicacao:
-        "O medo não te define. Até os heróis da Bíblia sentiram medo. O que importa não é nunca tremer, e sim pra quem você corre quando treme.",
-      aplicacao: pick([
-        "Dá um nome pro que te assusta. Fala com Deus sobre isso agora — Ele já sabe, mas quer ouvir de você.",
-        "Tenta ser específico diante de Deus: 'Senhor, eu estou com medo de ___. Me ajuda a confiar em Ti nisso.'",
-      ]),
-      versiculos: [
-        'Isaías 41:10 — "Não temas, porque eu sou contigo."',
-        '2 Timóteo 1:7 — "Deus não nos deu espírito de covardia..."',
-      ],
-      oracao: pick([
-        "Senhor, tira meu medo e enche meu coração de coragem. Amém.",
-        "Pai, entra exatamente onde meu medo está mais forte e sustenta meu coração. Amém.",
-      ]),
-      followUp: pick([
-        "Quer orar mais específico sobre o que está te assustando?",
-        "Quer que eu te mostre promessas bíblicas para momentos de medo?",
-      ]),
+      contexto: "Deus está com você — mesmo quando tudo parece incerto.",
+      explicacao: "O medo não te define. Até os heróis da Bíblia sentiram medo. O que importa não é nunca tremer, e sim pra quem você corre quando treme.",
+      aplicacao: "Dê nome ao que te assusta. Fale isso diante de Deus com honestidade.",
+      versiculos: ['Isaías 41:10', '2 Timóteo 1:7'],
+      oracao: "Se quiser, eu posso transformar isso em uma oração curta contra o medo.",
+      followUp: "Quer que eu te mostre promessas bíblicas para momentos de medo?",
     };
   }
 
@@ -1108,26 +840,12 @@ function matchEmotional(q: string, emotion?: UserEmotion | null): BibleResponse 
         "Eu sinto muito por isso… mas você não precisa enfrentar sozinho. 💙",
         "Seu coração parece cansado de doer. Eu sinto muito por isso. 💙",
       ]),
-      contexto:
-        "Deus guarda cada lágrima sua. Ele está perto dos que sofrem.",
-      explicacao:
-        "Sentir tristeza não é fraqueza. É humano. Até Jesus chorou. O que importa é não ficar sozinho nela.",
-      aplicacao: pick([
-        "Se permita sentir. Mas não se isole. Fala com Deus e, se puder, com alguém de confiança.",
-        "Hoje talvez o mais espiritual que você possa fazer seja não fingir que está bem. Seja honesto com Deus.",
-      ]),
-      versiculos: [
-        'Salmos 34:18 — "Perto está o Senhor dos que têm o coração quebrantado."',
-        'Salmos 30:5 — "O choro pode durar uma noite..."',
-      ],
-      oracao: pick([
-        "Pai, abraça meu coração agora. Restaura minha esperança. Amém.",
-        "Senhor, me sustenta no meio dessa tristeza e não me deixa afundar sozinho. Amém.",
-      ]),
-      followUp: pick([
-        "Quer me contar mais sobre o que está pesando no seu coração?",
-        "Quer que eu te mostre uma palavra bíblica de consolo para isso?",
-      ]),
+      contexto: "Deus guarda cada lágrima sua. Ele está perto dos que sofrem.",
+      explicacao: "Sentir tristeza não é fraqueza. É humano. Até Jesus chorou. O que importa é não ficar sozinho nela.",
+      aplicacao: "Se permita sentir. Mas não se isole. Fale com Deus e, se puder, com alguém de confiança.",
+      versiculos: ['Salmos 34:18', 'Salmos 30:5'],
+      oracao: "Se quiser, eu também posso montar uma oração curta de consolo para esse momento.",
+      followUp: "Quer me contar mais sobre o que está pesando no seu coração hoje?",
     };
   }
 
@@ -1135,28 +853,13 @@ function matchEmotional(q: string, emotion?: UserEmotion | null): BibleResponse 
     return {
       acolhimento: pick([
         "Imagino como isso pode estar te consumindo… mas existe graça pra isso. 💙",
-        "Quando a culpa pesa, parece que tudo por dentro encolhe. Mas Deus ainda é refúgio. 💙",
       ]),
-      contexto:
-        "A culpa pode ser pesada, mas Deus não quer que você viva preso nela.",
-      explicacao:
-        "Existe diferença entre convicção e condenação. Deus convence para curar; a condenação paralisa e esmaga.",
-      aplicacao: pick([
-        "Se tem algo que precisa acertar, dê o primeiro passo. Mas saiba que o perdão de Deus já está disponível.",
-        "Não alimente a culpa como se ela fosse espiritualidade. Leve tudo à luz diante de Deus.",
-      ]),
-      versiculos: [
-        'Romanos 8:1 — "Não há condenação para os que estão em Cristo Jesus."',
-        '1 João 1:9 — "Se confessarmos os nossos pecados..."',
-      ],
-      oracao: pick([
-        "Senhor, me liberta da culpa. Eu aceito Teu perdão e escolho não me condenar mais. Amém.",
-        "Pai, me ajuda a trocar acusação por arrependimento verdadeiro e descanso no Teu perdão. Amém.",
-      ]),
-      followUp: pick([
-        "Quer conversar sobre como lidar com a culpa de forma saudável?",
-        "Quer que eu te explique a diferença entre culpa, arrependimento e condenação?",
-      ]),
+      contexto: "A culpa pode ser pesada, mas Deus não quer que você viva preso nela.",
+      explicacao: "Existe diferença entre convicção e condenação. Deus convence para curar; a condenação paralisa e esmaga.",
+      aplicacao: "Se tem algo que precisa acertar, dê o primeiro passo. Mas saiba que o perdão de Deus já está disponível.",
+      versiculos: ['Romanos 8:1', '1 João 1:9'],
+      oracao: "Se quiser, eu posso te entregar uma oração curta sobre culpa e perdão.",
+      followUp: "Quer conversar sobre como lidar com a culpa de forma saudável?",
     };
   }
 
@@ -1164,53 +867,30 @@ function matchEmotional(q: string, emotion?: UserEmotion | null): BibleResponse 
     return {
       acolhimento: pick([
         "Eu entendo esse cansaço… você tem dado tudo de si. 💙",
-        "Você parece sobrecarregado demais pra continuar fingindo que está tudo bem. 💙",
       ]),
-      contexto:
-        "Deus não ignora o seu limite. Ele chama os cansados para perto, não para longe.",
-      explicacao:
-        "Cansaço não é falta de fé. Muitas vezes é só sinal de que você é humano e precisa de descanso, cuidado e presença de Deus.",
-      aplicacao: pick([
-        "Pare um pouco. Respire. Nem tudo precisa ser resolvido hoje.",
-        "Hoje talvez o próximo passo não seja produzir mais, e sim descansar melhor diante de Deus.",
-      ]),
-      versiculos: [
-        'Mateus 11:28 — "Venham a mim, todos os que estão cansados..."',
-      ],
-      oracao: pick([
-        "Senhor, renova minhas forças. Eu descanso em Ti. Amém.",
-        "Pai, dá descanso ao meu corpo, à minha mente e ao meu coração. Amém.",
-      ]),
-      followUp: pick([
-        "Quer que eu te ajude com um momento de pausa guiada?",
-        "Quer que eu te mostre uma palavra bíblica para cansaço e descanso?",
-      ]),
+      contexto: "Deus não ignora o seu limite. Ele chama os cansados para perto, não para longe.",
+      explicacao: "Cansaço não é falta de fé. Muitas vezes é só sinal de que você é humano e precisa de descanso e presença de Deus.",
+      aplicacao: "Pare um pouco. Respire. Nem tudo precisa ser resolvido hoje.",
+      versiculos: ['Mateus 11:28'],
+      oracao: "Se quiser, eu também posso te deixar uma oração curta de descanso e renovação.",
+      followUp: "Quer que eu te mostre uma palavra bíblica para cansaço?",
     };
   }
 
   return null;
 }
 
-function matchNamedTopic(q: string, emotion?: UserEmotion | null): BibleResponse | null {
+function matchNamedTopic(q: string, emotion?: NormalizedEmotion): BibleResponse | null {
   const lower = q.toLowerCase();
 
   if (/paulo|ap[oó]stolo\s+paulo|saulo/.test(lower)) {
     return {
-      acolhimento: pick([
-        "Que pergunta boa! A história de Paulo é realmente incrível. 😊",
-        "Paulo é um dos personagens mais fortes e transformadores de toda a Bíblia. 😊",
-      ]),
-      contexto:
-        "Paulo — antes chamado Saulo — perseguia cristãos até ter um encontro com Jesus na estrada de Damasco.",
-      explicacao:
-        "Depois desse encontro, ele se tornou um dos maiores missionários da história cristã e escreveu boa parte do Novo Testamento.",
-      aplicacao:
-        "A história de Paulo lembra que ninguém está longe demais para ser alcançado por Deus.",
-      versiculos: [
-        'Atos 9:15 — "Este é para mim um instrumento escolhido."',
-        'Gálatas 2:20 — "Já não sou eu quem vive, mas Cristo vive em mim."',
-      ],
-      oracao: "Senhor, transforma a minha vida como transformaste a de Paulo. Amém.",
+      acolhimento: "Que pergunta boa! A história de Paulo é incrível. 😊",
+      contexto: "Paulo — antes chamado Saulo — perseguia cristãos até ter um encontro com Jesus na estrada de Damasco.",
+      explicacao: "Depois desse encontro, ele se tornou um dos maiores missionários da história cristã e escreveu boa parte do Novo Testamento.",
+      aplicacao: "A história de Paulo lembra que ninguém está longe demais para ser alcançado por Deus.",
+      versiculos: ['Atos 9:15', 'Gálatas 2:20'],
+      oracao: prayerSuggestion("transformação"),
       followUp: "Quer saber mais sobre alguma fase específica da vida de Paulo?",
     };
   }
@@ -1218,85 +898,40 @@ function matchNamedTopic(q: string, emotion?: UserEmotion | null): BibleResponse
   if (/perd[aã]o|perdoar/.test(lower)) {
     return {
       acolhimento: `${getEmotionAcolhimento(emotion)} Falar sobre perdão nem sempre é fácil, né? 💙`,
-      contexto:
-        "O perdão é central na Bíblia. Quando Pedro perguntou quantas vezes deveria perdoar, Jesus respondeu de forma radical.",
-      explicacao:
-        "Perdoar não significa fingir que não doeu. É soltar o peso da mágoa e parar de permitir que ela governe o coração.",
-      aplicacao:
-        "Se tem alguém que você precisa perdoar, comece falando com Deus sobre isso com sinceridade. O processo pode ser gradual.",
-      versiculos: [
-        'Efésios 4:32 — "Perdoando-se mutuamente..."',
-        'Mateus 6:14 — "Se perdoardes aos homens..."',
-      ],
-      oracao: "Pai, tira de mim a amargura e enche meu coração de graça. Amém.",
+      contexto: "O perdão é central na Bíblia. Quando Pedro perguntou quantas vezes deveria perdoar, Jesus respondeu de forma radical.",
+      explicacao: "Perdoar não significa fingir que não doeu. É soltar o peso da mágoa e parar de permitir que ela governe o coração. É entregar a justiça para Deus.",
+      aplicacao: "Se tem alguém que você precisa perdoar, comece falando com Deus sobre isso com sinceridade. O perdão é uma decisão que pode levar tempo para virar sentimento.",
+      versiculos: ['Efésios 4:32', 'Mateus 6:14'],
+      oracao: prayerSuggestion("perdão"),
       followUp: "Quer que eu te ajude a pensar no próximo passo prático para esse perdão?",
-    };
-  }
-
-  if (faithMatcher(lower)) {
-    return {
-      acolhimento: `${getEmotionAcolhimento(emotion)} Falar sobre fé é falar sobre o que sustenta tudo. 😊`,
-      contexto:
-        'Hebreus 11:1 define fé como "a certeza daquilo que esperamos e a prova das coisas que não vemos."',
-      explicacao:
-        "Fé não é ausência de dúvida. É escolher confiar em Deus mesmo quando nem todas as peças estão no lugar.",
-      aplicacao:
-        "Você pode fortalecer a fé lembrando do que Deus já fez, orando com sinceridade e se expondo à Palavra de forma constante.",
-      versiculos: [
-        'Hebreus 11:1 — "A fé é a certeza..."',
-        'Marcos 9:24 — "Eu creio, Senhor! Ajuda-me..."',
-      ],
-      oracao: "Senhor, aumenta minha fé e me ajuda a confiar em Ti. Amém.",
-      followUp: "Quer que eu te mostre exemplos bíblicos de fé em momentos difíceis?",
     };
   }
 
   return null;
 }
 
-function buildPrayerResponse(emotion?: UserEmotion | null): BibleResponse {
+function buildPrayerResponse(emotion?: NormalizedEmotion): BibleResponse {
   return {
     acolhimento: `${getEmotionAcolhimento(emotion)} Vamos orar juntos. 💙`,
-    contexto:
-      "A oração é a conversa mais íntima que você pode ter com Deus. Ele ouve — sempre.",
-    explicacao:
-      "Não precisa ser bonito ou formal. Deus quer ouvir o que está no seu coração, do jeito que vier.",
-    aplicacao:
-      "Fecha os olhos, respira fundo, e fala com Deus como se Ele estivesse sentado do seu lado. Porque Ele está.",
-    versiculos: [
-      'Filipenses 4:6 — "Em tudo, pela oração..."',
-      'Salmos 145:18 — "Perto está o Senhor de todos os que o invocam."',
-    ],
+    contexto: "A oração é a conversa mais íntima que você pode ter com Deus. Ele ouve — sempre.",
+    explicacao: "Não precisa ser bonito ou formal. Deus quer ouvir o que está no seu coração, do jeito que vier.",
+    aplicacao: "Fecha os olhos, respira fundo, e fala com Deus como se Ele estivesse sentado do seu lado.",
+    versiculos: ['Filipenses 4:6', 'Salmos 145:18'],
     oracao: pick([
       "Pai, eu venho a Ti agora com tudo que sou. Ouve meu coração. Me encontra aqui. Amém.",
       "Senhor, eu me coloco diante de Ti agora. Vê meu interior, sustenta meu coração e fala comigo. Amém.",
     ]),
-    followUp: pick([
-      "Quer que eu faça uma oração mais específica sobre algo que está no seu coração?",
-      "Quer que eu ore por uma área específica da sua vida agora?",
-    ]),
+    followUp: "Quer que eu faça uma oração mais específica sobre algo que está no seu coração?",
   };
 }
 
-function buildVerseResponse(emotion?: UserEmotion | null): BibleResponse {
+function buildVerseResponse(emotion?: NormalizedEmotion): BibleResponse {
   const verses = [
     { ref: "Salmos 23:1", text: "O Senhor é o meu pastor, nada me faltará." },
-    {
-      ref: "Jeremias 29:11",
-      text: "Eu sei os planos que tenho pra vocês — planos de paz e não de mal.",
-    },
-    {
-      ref: "Romanos 8:28",
-      text: "Todas as coisas cooperam para o bem daqueles que amam a Deus.",
-    },
-    {
-      ref: "Isaías 40:31",
-      text: "Os que esperam no Senhor renovam suas forças.",
-    },
-    {
-      ref: "Josué 1:9",
-      text: "Seja forte e corajoso! Não se apavore, porque o Senhor está com você.",
-    },
+    { ref: "Jeremias 29:11", text: "Eu sei os planos que tenho pra vocês — planos de paz e não de mal." },
+    { ref: "Romanos 8:28", text: "Todas as coisas cooperam para o bem daqueles que amam a Deus." },
+    { ref: "Isaías 40:31", text: "Os que esperam no Senhor renovam suas forças." },
+    { ref: "Josué 1:9", text: "Seja forte e corajoso! Não se apavore, porque o Senhor está com você." },
   ];
 
   const v = pick(verses);
@@ -1305,55 +940,25 @@ function buildVerseResponse(emotion?: UserEmotion | null): BibleResponse {
     acolhimento: `${getEmotionAcolhimento(emotion)} Aqui vai um versículo pra te acompanhar hoje. 😊`,
     contexto: `${v.ref}`,
     explicacao: `"${v.text}"`,
-    aplicacao: pick([
-      "Guarda esse versículo no coração. Lê de novo antes de dormir.",
-      "Lê isso devagar mais uma vez e pergunta a Deus o que Ele quer acender no seu coração através dessa palavra.",
-    ]),
+    aplicacao: "Guarda esse versículo no coração. Lê de novo antes de dormir.",
     versiculos: [`${v.ref} — "${v.text}"`],
-    oracao: pick([
-      "Senhor, que essa palavra se torne real na minha vida. Amém.",
-      "Pai, faz essa palavra descer do meu entendimento para o meu coração. Amém.",
-    ]),
-    followUp: pick([
-      "Quer outro versículo ou quer refletir mais sobre esse?",
-      "Quer que eu explique melhor esse versículo pra você?",
-    ]),
+    oracao: "Se quiser, eu também posso transformar esse versículo em uma oração curta.",
+    followUp: "Quer outro versículo ou quer refletir mais sobre esse?",
   };
 }
 
-function buildGeneralResponse(emotion?: UserEmotion | null): BibleResponse {
+function buildGeneralResponse(emotion?: NormalizedEmotion): BibleResponse {
   return {
     acolhimento: pick([
       `${getEmotionAcolhimento(emotion)} Vamos olhar isso juntos. 💙`,
       "Boa pergunta. Deixa eu te ajudar com isso.",
-      "Que bom que você trouxe isso. Vamos conversar.",
-      `Eu tô com você nessa reflexão. ${pick(WARMTH_PHRASES.closing)}`,
     ]),
-    contexto: pick([
-      "A Bíblia tem direção pra isso.",
-      "A Palavra de Deus não é distante desse tipo de pergunta.",
-      "Deus se importa mais com isso do que às vezes a gente imagina.",
-    ]),
-    explicacao: pick([
-      "Deus fala de forma clara quando buscamos com sinceridade.",
-      "Nem toda resposta vem de forma instantânea, mas Deus sabe conduzir quem O busca com verdade.",
-      "Quando a gente se aproxima com o coração aberto, Deus tem um jeito de trazer luz até em temas difíceis.",
-    ]),
-    aplicacao: pick([
-      "Separe um tempo com Deus hoje. Pode ser 5 minutos — Ele não precisa de muito tempo pra falar ao seu coração.",
-      "Talvez o melhor próximo passo seja diminuir o ritmo por um instante, orar com honestidade e voltar à Palavra com calma.",
-    ]),
-    versiculos: [
-      'Tiago 1:5 — "Se algum de vocês tem falta de sabedoria, peça-a a Deus..."',
-    ],
-    oracao: pick([
-      "Senhor, me guia nessa questão. Eu confio em Ti. Amém.",
-      "Pai, dá clareza ao meu coração e firmeza ao meu caminho. Amém.",
-    ]),
-    followUp: pick([
-      "Quer que eu aprofunde isso com você?",
-      "Quer que eu responda isso de um jeito mais simples ou mais profundo?",
-    ]),
+    contexto: "A Bíblia tem direção e sabedoria para todas as áreas da nossa vida.",
+    explicacao: "Nem toda resposta vem de forma instantânea, mas Deus sabe conduzir e clarear a mente de quem O busca com verdade e coração aberto.",
+    aplicacao: "Separe um tempo com Deus hoje. Pode ser 5 minutos — Ele não precisa de muito tempo pra falar ao seu coração.",
+    versiculos: ['Tiago 1:5 — "Se algum de vocês tem falta de sabedoria, peça-a a Deus..."'],
+    oracao: "Se você quiser, eu posso orar para que Deus te dê clareza sobre isso.",
+    followUp: "Quer que eu aprofunde isso com você ou traga outros textos bíblicos?",
   };
 }
 
@@ -1363,22 +968,13 @@ export const helpTopics = [
     emoji: "😰",
     label: "Ansiedade",
     response: {
-      acolhimento:
-        "Eu sei que quando a ansiedade aperta parece que o coração não descansa. Mas você não está sozinho nisso. 💙",
-      contexto:
-        "A Bíblia fala com muita ternura sobre ansiedade, porque Deus conhece nossa fragilidade e sabe como a mente humana pode ficar sobrecarregada.",
-      explicacao:
-        "Ansiedade muitas vezes é o coração tentando controlar tudo ao mesmo tempo. Deus não te humilha por isso — Ele te chama pra perto e te convida a entregar o peso.",
-      aplicacao:
-        "Faz algo simples agora: respira fundo 3 vezes, mais devagar do que sua mente quer. Depois, fala com Deus com sinceridade: 'Senhor, eu não consigo carregar isso sozinho.'",
-      versiculos: [
-        'Filipenses 4:6-7 — "Não andem ansiosos por coisa alguma..."',
-        '1 Pedro 5:7 — "Lancem sobre ele toda a sua ansiedade..."',
-      ],
-      oracao:
-        "Senhor, Tu vês o que está acelerando minha mente. Acalma meu interior e sustenta meu coração com Tua paz. Amém.",
-      followUp:
-        "Quer que eu te guie agora em uma pequena pausa de respiração e oração?",
+      acolhimento: "Eu sei que quando a ansiedade aperta parece que o coração não descansa. Mas você não está sozinho nisso. 💙",
+      contexto: "A Bíblia fala com muita ternura sobre ansiedade, porque Deus conhece nossa fragilidade.",
+      explicacao: "Ansiedade muitas vezes é o coração tentando controlar tudo ao mesmo tempo. Deus não te humilha por isso — Ele te convida a entregar o peso.",
+      aplicacao: "Faz algo simples agora: respira fundo 3 vezes. Depois, fala com Deus: 'Senhor, eu não consigo carregar isso sozinho.'",
+      versiculos: ['Filipenses 4:6-7', '1 Pedro 5:7'],
+      oracao: "Pai, traz paz pra mente e pro coração agora. Acalma a tempestade. Amém.",
+      followUp: "Quer que eu te guie agora em uma pequena pausa de oração?",
     },
   },
   {
@@ -1386,22 +982,13 @@ export const helpTopics = [
     emoji: "😢",
     label: "Tristeza",
     response: {
-      acolhimento:
-        "Sei que essa tristeza pode deixar tudo mais pesado. Mas você não precisa atravessar isso sozinho. 💙",
-      contexto:
-        "A Bíblia não esconde a dor humana. Davi chorou, Jeremias lamentou, Jesus também chorou. Deus nunca tratou a tristeza sincera como fraqueza sem valor.",
-      explicacao:
-        "Tristeza não significa ausência de fé. Às vezes significa que o coração foi profundamente tocado e precisa de consolo real, não de pressa.",
-      aplicacao:
-        "Hoje, não se cobre tanto. Se puder, seja honesto com Deus e com alguém de confiança. O primeiro passo nem sempre é melhorar rápido — às vezes é só parar de se isolar.",
-      versiculos: [
-        'Salmos 34:18 — "Perto está o Senhor dos que têm o coração quebrantado."',
-        'Salmos 30:5 — "O choro pode durar uma noite..."',
-      ],
-      oracao:
-        "Pai, acolhe minha dor com Teu amor. Segura meu coração e não me deixa afundar sozinho. Amém.",
-      followUp:
-        "Quer me contar o que está pesando mais no seu coração hoje?",
+      acolhimento: "Sei que essa tristeza pode deixar tudo mais pesado. Você não precisa atravessar isso sozinho. 💙",
+      contexto: "A Bíblia não esconde a dor humana. Jesus também chorou. Deus nunca tratou a tristeza sincera como fraqueza.",
+      explicacao: "Tristeza não significa ausência de fé. Às vezes significa que o coração foi profundamente tocado e precisa de consolo real.",
+      aplicacao: "Não se cobre tanto. O primeiro passo nem sempre é melhorar rápido — às vezes é só parar de se esconder de Deus.",
+      versiculos: ['Salmos 34:18', 'Salmos 30:5'],
+      oracao: "Senhor, consola esse coração machucado e traz o Seu abraço de Pai. Amém.",
+      followUp: "Quer me contar o que está pesando mais no seu coração hoje?",
     },
   },
   {
@@ -1409,45 +996,13 @@ export const helpTopics = [
     emoji: "😨",
     label: "Medo",
     response: {
-      acolhimento:
-        "Ter medo não te faz fraco. Te faz humano. E Deus sabe exatamente como te encontrar aí. 💙",
-      contexto:
-        "A Bíblia está cheia de pessoas que sentiram medo e mesmo assim caminharam com Deus. O chamado de Deus nunca foi 'nunca sinta medo', mas 'não caminhe sozinho no medo'.",
-      explicacao:
-        "O medo tenta ampliar o problema e encolher a presença de Deus na nossa visão. A fé faz o contrário: não nega a luta, mas lembra que Deus continua maior.",
-      aplicacao:
-        "Dá nome ao que te assusta. Depois fala isso claramente diante de Deus. Quando o medo sai da confusão e entra na oração, ele começa a perder força.",
-      versiculos: [
-        'Isaías 41:10 — "Não temas, porque eu sou contigo."',
-        '2 Timóteo 1:7 — "Deus não nos deu espírito de covardia..."',
-      ],
-      oracao:
-        "Senhor, entra exatamente no lugar onde o medo está me apertando e enche meu coração de coragem em Ti. Amém.",
-      followUp:
-        "Quer que eu te mostre promessas bíblicas para enfrentar esse medo?",
-    },
-  },
-  {
-    id: "tentacao",
-    emoji: "🔥",
-    label: "Tentação",
-    response: {
-      acolhimento:
-        "Obrigado por trazer isso com sinceridade. Falar da tentação já é, por si só, um passo de luz. 💙",
-      contexto:
-        "Jesus também foi tentado e respondeu com firmeza, verdade e dependência do Pai. A tentação, por si só, não é o pecado — ela é o campo de batalha.",
-      explicacao:
-        "O perigo da tentação está no isolamento, na repetição escondida e na mentira de que você precisa lutar sozinho. Deus sempre oferece um caminho de escape.",
-      aplicacao:
-        "Quando a tentação vier, faz 3 movimentos: se afasta do gatilho, ora na hora e chama alguém maduro pra andar com você nisso. Luta escondida cresce; luta exposta enfraquece.",
-      versiculos: [
-        '1 Coríntios 10:13 — "Fiel é Deus, que não permitirá..."',
-        'Tiago 4:7 — "Resisti ao diabo, e ele fugirá..."',
-      ],
-      oracao:
-        "Senhor, fortalece meu interior, guarda meus olhos, minha mente e minhas escolhas. Mostra a porta de saída e me dá coragem pra usá-la. Amém.",
-      followUp:
-        "Quer que eu te ajude a montar um plano prático pra quando isso voltar?",
+      acolhimento: "Ter medo não te faz fraco. Te faz humano. E Deus sabe exatamente como te encontrar aí. 💙",
+      contexto: "A Bíblia está cheia de pessoas que sentiram medo. O chamado de Deus não é 'nunca sinta medo', mas 'não caminhe sozinho'.",
+      explicacao: "O medo tenta ampliar o problema e encolher a presença de Deus na nossa visão. A fé lembra que Deus continua maior.",
+      aplicacao: "Dá nome ao que te assusta. Quando o medo sai da confusão e entra na oração, ele começa a perder força.",
+      versiculos: ['Isaías 41:10', '2 Timóteo 1:7'],
+      oracao: "Deus, tira o espírito de medo e traz paz e certeza do Seu cuidado. Amém.",
+      followUp: "Quer que eu te mostre promessas bíblicas para enfrentar esse medo?",
     },
   },
 ];
@@ -1458,63 +1013,65 @@ export function generateMockResponse(
 ): BibleResponse {
   const q = question.toLowerCase().trim();
   const intent = detectIntent(q);
-  const effectiveEmotion = emotion ?? inferEmotionFromQuestion(q);
+  const effectiveEmotion = normalizeEmotion(emotion) ?? inferEmotionFromQuestion(q);
 
   const theological = matchTheological(q, effectiveEmotion);
   if (theological) {
-    remember(
-      theological.followUp.includes("visão")
-        ? "salvation_security"
-        : memoryState.lastTopic ?? "general",
-      "theological",
-      effectiveEmotion
-    );
+    remember("theological", "theological", effectiveEmotion, question);
     return theological;
   }
 
   const factual = matchFactual(q);
   if (factual) {
-    remember("factual", "factual", effectiveEmotion);
+    remember("factual", "factual", effectiveEmotion, question);
     return factual;
   }
 
   const emotional = matchEmotional(q, effectiveEmotion);
   if (emotional) {
-    let topic: TopicKey = "general";
-    if (/ansio|preocup|nervos|afli[cç][aã]o|desespero|p[aâ]nico/.test(q)) topic = "anxiety";
-    else if (/medo|assust|pavor|receio|terror/.test(q)) topic = "fear";
-    else if (/trist|chorar|sozinho|saudade|vazio/.test(q)) topic = "sadness";
-    else if (/culpa|envergonh|acusad/.test(q)) topic = "guilt";
-    else if (/cansa|exaust|esgota|sobrecarreg/.test(q)) topic = "fatigue";
-
-    remember(topic, "emotional", effectiveEmotion);
+    remember("emotional", "emotional", effectiveEmotion, question);
     return emotional;
   }
 
   const named = matchNamedTopic(q, effectiveEmotion);
   if (named) {
-    let topic: TopicKey = "general";
-    if (/paulo|ap[oó]stolo\s+paulo|saulo/.test(q)) topic = "paul";
-    else if (/perd[aã]o|perdoar/.test(q)) topic = "forgiveness";
-    else if (faithMatcher(q)) topic = "faith";
-
-    remember(topic, "general", effectiveEmotion);
+    remember("general", "general", effectiveEmotion, question);
     return named;
   }
 
   if (intent === "prayer") {
     const response = buildPrayerResponse(effectiveEmotion);
-    remember("prayer", "prayer", effectiveEmotion);
+    remember("prayer", "prayer", effectiveEmotion, question);
     return response;
   }
 
   if (intent === "verse") {
     const response = buildVerseResponse(effectiveEmotion);
-    remember("verse", "verse", effectiveEmotion);
+    remember("verse", "verse", effectiveEmotion, question);
     return response;
   }
 
   const response = buildGeneralResponse(effectiveEmotion);
-  remember("general", intent, effectiveEmotion);
+  remember("general", intent, effectiveEmotion, question);
   return response;
+}
+
+// ==========================================
+// FUNÇÕES DE INTEGRAÇÃO COM O CHAT (ADICIONADAS PARA CORRIGIR O BUG)
+// ==========================================
+
+// 1. Se o seu chat no 'index' precisar exibir a resposta como um texto simples (string), use esta função:
+export function formatMockResponseToString(res: BibleResponse): string {
+  const versos = res.versiculos.length > 0 ? `\n📖 Versículos: ${res.versiculos.join(" | ")}` : "";
+  return `${res.acolhimento}\n\n${res.contexto}\n\n${res.explicacao}\n\n${res.aplicacao}${versos}\n\n🙏 ${res.oracao}\n\n${res.followUp}`;
+}
+
+// 2. Se o seu 'index' precisa chamar a função como se fosse uma API real (com delay de tempo), chame esta função ao invés da `generateMockResponse`:
+export async function fetchMockChatAsync(question: string, emotion?: UserEmotion | null): Promise<BibleResponse> {
+  return new Promise((resolve) => {
+    // Simula 1.5 segundos de "carregamento" para o chat não bugar
+    setTimeout(() => {
+      resolve(generateMockResponse(question, emotion));
+    }, 1500); 
+  });
 }

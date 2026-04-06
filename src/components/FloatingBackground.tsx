@@ -6,122 +6,209 @@ const FloatingBackground = () => {
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
       aria-hidden="true"
     >
-      {/* Base deep luxury background */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(180deg, hsl(220 52% 7%) 0%, hsl(227 50% 9%) 22%, hsl(235 44% 11%) 46%, hsl(245 38% 10%) 68%, hsl(228 48% 8%) 100%)",
-        }}
-      />
+      {/* Base background */}
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(222_55%_6%)_0%,hsl(228_52%_8%)_16%,hsl(234_46%_10%)_38%,hsl(242_40%_9%)_66%,hsl(226_50%_7%)_100%)]" />
 
-      {/* Soft top cinematic blue bloom */}
-      <div
-        className="absolute -top-44 left-1/2 h-[720px] w-[720px] -translate-x-1/2 rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, hsl(214 92% 64% / 0.08) 0%, hsl(226 88% 58% / 0.045) 34%, transparent 72%)",
-        }}
-      />
+      {/* Global cinematic light */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_28%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(96,165,250,0.05),transparent_42%)]" />
 
-      {/* Secondary royal-blue depth bloom */}
-      <div
-        className="absolute top-[22%] right-[-14%] h-[520px] w-[520px] rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, hsl(223 88% 56% / 0.06) 0%, transparent 72%)",
-        }}
-      />
-
-      {/* Lower ambient violet/indigo haze */}
-      <div
-        className="absolute bottom-[-10%] left-[-8%] h-[500px] w-[500px] rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, hsl(248 68% 62% / 0.045) 0%, transparent 74%)",
-        }}
-      />
-
-      {/* Subtle gold warmth near bottom center */}
-      <div
-        className="absolute -bottom-24 left-1/2 h-[360px] w-[540px] -translate-x-1/2 rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, hsl(43 78% 66% / 0.028) 0%, hsl(43 78% 66% / 0.012) 38%, transparent 76%)",
-        }}
-      />
-
-      {/* Top-left premium haze */}
-      <div
-        className="absolute left-[-12%] top-[8%] h-[420px] w-[420px] rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, hsl(205 95% 70% / 0.035) 0%, transparent 72%)",
-        }}
-      />
-
-      {/* Fine glass-like vertical sheen */}
-      <div
-        className="absolute inset-0 opacity-[0.09]"
-        style={{
-          background:
-            "linear-gradient(105deg, transparent 0%, transparent 34%, rgba(255,255,255,0.045) 50%, transparent 66%, transparent 100%)",
-        }}
-      />
-
-      {/* Gentle floating premium blobs */}
+      {/* Main central aura */}
       <motion.div
-        animate={{ y: [0, -18, 0], x: [0, 12, 0], scale: [1, 1.03, 1] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute left-[6%] top-[16%] h-44 w-44 rounded-full blur-3xl"
+        animate={{
+          opacity: [0.26, 0.4, 0.26],
+          scale: [1, 1.08, 1],
+          x: [0, 10, 0],
+          y: [0, -10, 0],
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute left-1/2 top-[-180px] h-[760px] w-[760px] -translate-x-1/2 rounded-full blur-3xl"
         style={{
-          background: "hsl(214 92% 64% / 0.038)",
+          background:
+            "radial-gradient(circle, rgba(96,165,250,0.16) 0%, rgba(59,130,246,0.10) 26%, rgba(37,99,235,0.045) 46%, transparent 74%)",
         }}
       />
 
+      {/* Upper subtle halo */}
       <motion.div
-        animate={{ y: [0, 18, 0], x: [0, -10, 0], scale: [1, 1.04, 1] }}
+        animate={{
+          opacity: [0.08, 0.16, 0.08],
+          scale: [1, 1.04, 1],
+          y: [0, -8, 0],
+        }}
+        transition={{
+          duration: 14,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute left-1/2 top-[-40px] h-[340px] w-[520px] -translate-x-1/2 rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(255,255,255,0.05) 0%, transparent 72%)",
+        }}
+      />
+
+      {/* Right bloom */}
+      <motion.div
+        animate={{
+          opacity: [0.1, 0.22, 0.1],
+          x: [0, -16, 0],
+          y: [0, 12, 0],
+          scale: [1, 1.05, 1],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute right-[-12%] top-[22%] h-[480px] w-[480px] rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(59,130,246,0.12) 0%, rgba(37,99,235,0.05) 40%, transparent 74%)",
+        }}
+      />
+
+      {/* Left ice glow */}
+      <motion.div
+        animate={{
+          opacity: [0.08, 0.16, 0.08],
+          x: [0, 12, 0],
+          y: [0, -14, 0],
+        }}
+        transition={{
+          duration: 19,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute left-[-10%] top-[16%] h-[400px] w-[400px] rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(125,211,252,0.08) 0%, transparent 72%)",
+        }}
+      />
+
+      {/* Bottom gold signature */}
+      <motion.div
+        animate={{
+          opacity: [0.08, 0.18, 0.08],
+          scale: [1, 1.06, 1],
+          y: [0, -8, 0],
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute bottom-[-16%] left-1/2 h-[460px] w-[680px] -translate-x-1/2 rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(255,215,102,0.10) 0%, rgba(255,215,102,0.035) 34%, transparent 76%)",
+        }}
+      />
+
+      {/* Luxury violet haze */}
+      <motion.div
+        animate={{
+          opacity: [0.06, 0.14, 0.06],
+          x: [0, 12, 0],
+          y: [0, 10, 0],
+        }}
+        transition={{
+          duration: 22,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute bottom-[-8%] left-[-6%] h-[340px] w-[340px] rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 74%)",
+        }}
+      />
+
+      {/* Secondary bottom-right depth */}
+      <motion.div
+        animate={{
+          opacity: [0.05, 0.12, 0.05],
+          x: [0, -10, 0],
+          y: [0, 8, 0],
+        }}
+        transition={{
+          duration: 24,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute bottom-[6%] right-[-4%] h-[280px] w-[280px] rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(56,189,248,0.05) 0%, transparent 72%)",
+        }}
+      />
+
+      {/* Premium sheen */}
+      <div className="absolute inset-0 opacity-[0.08] bg-[linear-gradient(105deg,transparent_0%,transparent_36%,rgba(255,255,255,0.06)_50%,transparent_64%,transparent_100%)]" />
+
+      {/* Ambient floating blobs */}
+      <motion.div
+        animate={{ y: [0, -18, 0], x: [0, 10, 0], scale: [1, 1.03, 1] }}
+        transition={{ duration: 17, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-[8%] top-[16%] h-40 w-40 rounded-full blur-3xl"
+        style={{ background: "rgba(96,165,250,0.05)" }}
+      />
+
+      <motion.div
+        animate={{ y: [0, 16, 0], x: [0, -14, 0], scale: [1, 1.04, 1] }}
         transition={{ duration: 19, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute right-[2%] top-[42%] h-60 w-60 rounded-full blur-3xl"
-        style={{
-          background: "hsl(228 88% 58% / 0.03)",
-        }}
+        className="absolute right-[6%] top-[54%] h-52 w-52 rounded-full blur-3xl"
+        style={{ background: "rgba(59,130,246,0.045)" }}
       />
 
       <motion.div
-        animate={{ y: [0, 14, 0], x: [0, 8, 0] }}
+        animate={{ y: [0, 12, 0], x: [0, 8, 0] }}
         transition={{ duration: 21, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-[10%] left-[16%] h-44 w-44 rounded-full blur-3xl"
-        style={{
-          background: "hsl(246 70% 64% / 0.03)",
-        }}
+        className="absolute bottom-[14%] left-[18%] h-36 w-36 rounded-full blur-3xl"
+        style={{ background: "rgba(255,215,102,0.035)" }}
       />
 
       <motion.div
-        animate={{ y: [0, -10, 0], x: [0, 6, 0], scale: [1, 1.02, 1] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute left-[56%] top-[64%] h-32 w-32 rounded-full blur-3xl"
-        style={{
-          background: "hsl(43 78% 66% / 0.016)",
-        }}
+        animate={{ y: [0, -10, 0], x: [0, 6, 0], scale: [1, 1.03, 1] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-[56%] top-[66%] h-28 w-28 rounded-full blur-3xl"
+        style={{ background: "rgba(255,255,255,0.025)" }}
       />
 
-      {/* Tiny distant light accents */}
+      {/* Fine cinematic particles */}
       <motion.div
-        animate={{ opacity: [0.18, 0.34, 0.18] }}
+        animate={{ opacity: [0.14, 0.3, 0.14], y: [0, -8, 0] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute left-[18%] top-[22%] h-1.5 w-1.5 rounded-full bg-blue-200/30 blur-[1px]"
+        className="absolute left-[18%] top-[22%] h-1.5 w-1.5 rounded-full bg-blue-100/30 blur-[1px]"
       />
       <motion.div
-        animate={{ opacity: [0.12, 0.28, 0.12] }}
-        transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut" }}
+        animate={{ opacity: [0.12, 0.22, 0.12], y: [0, -10, 0] }}
+        transition={{ duration: 7.4, repeat: Infinity, ease: "easeInOut" }}
         className="absolute right-[20%] top-[30%] h-1 w-1 rounded-full bg-white/25 blur-[1px]"
       />
       <motion.div
-        animate={{ opacity: [0.08, 0.2, 0.08] }}
-        transition={{ duration: 8.2, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute left-[68%] top-[58%] h-1 w-1 rounded-full bg-blue-100/25 blur-[1px]"
+        animate={{ opacity: [0.08, 0.18, 0.08], y: [0, -7, 0] }}
+        transition={{ duration: 8.1, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-[66%] top-[58%] h-1 w-1 rounded-full bg-blue-200/25 blur-[1px]"
       />
+      <motion.div
+        animate={{ opacity: [0.08, 0.22, 0.08], y: [0, -8, 0] }}
+        transition={{ duration: 6.8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-[38%] top-[72%] h-1.5 w-1.5 rounded-full bg-yellow-200/20 blur-[1px]"
+      />
+      <motion.div
+        animate={{ opacity: [0.06, 0.18, 0.06], y: [0, -6, 0] }}
+        transition={{ duration: 9.3, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute right-[34%] top-[18%] h-1 w-1 rounded-full bg-white/20 blur-[1px]"
+      />
+
+      {/* Bottom depth shadow */}
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.18)_100%)]" />
     </div>
   );
 };

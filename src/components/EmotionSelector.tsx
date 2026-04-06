@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export type UserEmotion =
   | "triste"
@@ -14,95 +14,73 @@ interface EmotionSelectorProps {
 }
 
 const emotions: {
-  id: UserEmotion;
+  id: Exclude<UserEmotion, null>;
   emoji: string;
   label: string;
-  accent: string;
+  color: string;
 }[] = [
-  { id: "triste", emoji: "😔", label: "Triste", accent: "emotion-card-sadness" },
-  { id: "ansioso", emoji: "😰", label: "Ansioso", accent: "emotion-card-anxiety" },
-  { id: "cansado", emoji: "😞", label: "Cansado", accent: "emotion-card-sadness" },
-  { id: "confuso", emoji: "😐", label: "Confuso", accent: "emotion-card-fear" },
-  { id: "em_paz", emoji: "🙂", label: "Em paz", accent: "emotion-card-anxiety" },
+  { id: "triste", emoji: "😔", label: "Triste", color: "from-blue-500/20" },
+  { id: "ansioso", emoji: "😰", label: "Ansioso", color: "from-cyan-400/20" },
+  { id: "cansado", emoji: "😞", label: "Cansado", color: "from-orange-400/20" },
+  { id: "confuso", emoji: "😐", label: "Confuso", color: "from-purple-400/20" },
+  { id: "em_paz", emoji: "🙂", label: "Em paz", color: "from-emerald-400/20" },
 ];
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.06,
-    },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 10, scale: 0.9 },
-  show: { opacity: 1, y: 0, scale: 1 },
-};
 
 const EmotionSelector = ({ onSelect, selected }: EmotionSelectorProps) => {
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="flex flex-wrap justify-center gap-3"
-    >
-      {emotions.map((e) => {
-        const isActive = selected === e.id;
+    <div className="space-y-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 pl-1">
+        Como está seu coração?
+      </p>
 
-        return (
-          <motion.button
-            key={e.id}
-            variants={item}
-            whileTap={{ scale: 0.92 }}
-            onClick={() => onSelect(e.id)}
-            className={`
-              relative flex flex-col items-center gap-2
-              rounded-2xl px-4 py-3.5
-              transition-all duration-300
-              border
-              ${isActive
-                ? "border-gold/30 bg-[hsl(var(--gold)/0.08)] shadow-[0_0_20px_hsl(var(--gold)/0.08)]"
-                : "border-border/15 bg-[hsl(var(--navy-light)/0.45)] hover:bg-[hsl(var(--navy-light)/0.65)] hover:border-border/30"}
-              ${e.accent}
-            `}
-          >
-            {/* Glow background when selected */}
-            {isActive && (
-              <div className="absolute inset-0 rounded-2xl pointer-events-none bg-[radial-gradient(circle,rgba(255,215,102,0.12),transparent_70%)]" />
-            )}
+      <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-2 px-2 mask-linear-edge">
+        {emotions.map((emotion) => {
+          const isActive = selected === emotion.id;
 
-            {/* Emoji */}
-            <span className="text-[22px] leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
-              {e.emoji}
-            </span>
-
-            {/* Label */}
-            <span
-              className={`
-                text-[11px] font-medium tracking-[0.02em]
-                transition-all duration-200
-                ${isActive
-                  ? "text-gold-light"
-                  : "text-foreground/65 group-hover:text-foreground"}
-              `}
+          return (
+            <motion.button
+              key={emotion.id}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onSelect(isActive ? null : emotion.id)}
+              className={`relative flex min-w-[100px] flex-col items-center gap-3 rounded-[24px] border py-4 transition-all duration-500 ${
+                isActive
+                  ? "border-gold/40 bg-gold/5 shadow-[0_10px_20px_rgba(217,167,74,0.1)]"
+                  : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+              }`}
             >
-              {e.label}
-            </span>
+              {/* Efeito de brilho de fundo para o item ativo */}
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className={`absolute inset-0 bg-gradient-to-b ${emotion.color} to-transparent rounded-[24px] pointer-events-none`}
+                  />
+                )}
+              </AnimatePresence>
 
-            {/* Active indicator */}
-            {isActive && (
-              <motion.div
-                layoutId="emotion-indicator"
-                className="absolute -bottom-1 h-1.5 w-6 rounded-full bg-gold"
-              />
-            )}
-          </motion.button>
-        );
-      })}
-    </motion.div>
+              <span className={`relative z-10 text-2xl transition-transform duration-300 ${isActive ? 'scale-125' : 'grayscale-[0.5]'}`}>
+                {emotion.emoji}
+              </span>
+
+              <span className={`relative z-10 text-[11px] font-bold tracking-wide transition-colors ${isActive ? 'text-gold' : 'text-white/40'}`}>
+                {emotion.label}
+              </span>
+
+              {/* Indicador de Seleção Magnético */}
+              {isActive && (
+                <motion.div
+                  layoutId="active-pill"
+                  className="absolute -bottom-[1px] h-1 w-8 rounded-full bg-gold shadow-[0_0_10px_rgba(217,167,74,0.5)]"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 

@@ -7,47 +7,87 @@ interface StreakData {
   lastDate: string;
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+function getLocalDateString(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getYesterdayString(): string {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return getLocalDateString(date);
+}
+
+function getDefaultStreak(): StreakData {
+  return { count: 0, lastDate: "" };
+}
+
+function isValidStreakData(value: unknown): value is StreakData {
+  if (!value || typeof value !== "object") return false;
+
+  const data = value as Record<string, unknown>;
+
+  return (
+    typeof data.count === "number" &&
+    Number.isFinite(data.count) &&
+    data.count >= 0 &&
+    typeof data.lastDate === "string"
+  );
+}
+
+function saveStreak(data: StreakData) {
+  try {
+    localStorage.setItem(STREAK_KEY, JSON.stringify(data));
+  } catch {
+    // ignore
+  }
 }
 
 function loadStreak(): StreakData {
   try {
     const raw = localStorage.getItem(STREAK_KEY);
-    if (!raw) return { count: 0, lastDate: "" };
-    return JSON.parse(raw);
+    if (!raw) return getDefaultStreak();
+
+    const parsed: unknown = JSON.parse(raw);
+    return isValidStreakData(parsed) ? parsed : getDefaultStreak();
   } catch {
-    return { count: 0, lastDate: "" };
+    return getDefaultStreak();
   }
 }
 
 function calcStreak(data: StreakData): StreakData {
-  const t = today();
-  if (data.lastDate === t) return data;
+  const today = getLocalDateString();
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = yesterday.toISOString().slice(0, 10);
+  if (data.lastDate === today) {
+    return data;
+  }
 
-  const newData: StreakData =
-    data.lastDate === yStr
-      ? { count: data.count + 1, lastDate: t }
-      : { count: 1, lastDate: t };
+  const yesterday = getYesterdayString();
 
-  localStorage.setItem(STREAK_KEY, JSON.stringify(newData));
-  return newData;
+  return data.lastDate === yesterday
+    ? { count: data.count + 1, lastDate: today }
+    : { count: 1, lastDate: today };
 }
 
 export function useDailyStreak() {
-  const [streak, setStreak] = useState<StreakData>(() => calcStreak(loadStreak()));
+  const [streak, setStreak] = useState<StreakData>(() => {
+    const initial = calcStreak(loadStreak());
+    saveStreak(initial);
+    return initial;
+  });
 
   const recordInteraction = useCallback(() => {
     setStreak((prev) => {
       const updated = calcStreak(prev);
-      localStorage.setItem(STREAK_KEY, JSON.stringify(updated));
+      saveStreak(updated);
       return updated;
     });
   }, []);
 
-  return { streakCount: streak.count, recordInteraction };
+  return {
+    streakCount: streak.count,
+    recordInteraction,
+  };
 }

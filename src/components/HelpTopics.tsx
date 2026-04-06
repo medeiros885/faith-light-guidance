@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Sparkles,
   Shield,
+  Quote,
 } from "lucide-react";
 import { helpTopics } from "@/data/mockResponses";
 import type { BibleResponse } from "@/data/mockResponses";
@@ -18,10 +19,14 @@ interface HelpTopicsProps {
 }
 
 const emotionStyles: Record<string, string> = {
-  ansiedade: "emotion-card-anxiety",
-  tristeza: "emotion-card-sadness",
-  medo: "emotion-card-fear",
-  tentacao: "emotion-card-temptation",
+  ansiedade:
+    "border-cyan-300/12 bg-[linear-gradient(180deg,rgba(34,211,238,0.10),rgba(255,255,255,0.03))]",
+  tristeza:
+    "border-slate-300/12 bg-[linear-gradient(180deg,rgba(148,163,184,0.10),rgba(255,255,255,0.03))]",
+  medo:
+    "border-indigo-300/12 bg-[linear-gradient(180deg,rgba(99,102,241,0.10),rgba(255,255,255,0.03))]",
+  tentacao:
+    "border-amber-300/12 bg-[linear-gradient(180deg,rgba(251,191,36,0.10),rgba(255,255,255,0.03))]",
 };
 
 const helpVerses = [
@@ -56,31 +61,34 @@ const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
         Voltar
       </button>
 
-      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay: 0.08, duration: 0.45 }}
-        className="glass-card rounded-[30px] px-6 py-7 text-center"
+        className="glass-card relative overflow-hidden rounded-[30px] px-6 py-7 text-center"
       >
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-gold/10 bg-gold/8 shadow-[0_0_24px_rgba(255,215,102,0.05)]">
-          <Heart size={24} className="text-gold/75" strokeWidth={1.7} />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,215,102,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.06),transparent_30%)]" />
+
+        <div className="relative z-10">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-gold/10 bg-gold/8 shadow-[0_0_24px_rgba(255,215,102,0.05)]">
+            <Heart size={24} className="text-gold/75" strokeWidth={1.7} />
+          </div>
+
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold/62">
+            Lugar seguro
+          </p>
+
+          <h2 className="mt-2 font-display text-[28px] font-semibold text-foreground/96">
+            Você não está sozinho
+          </h2>
+
+          <p className="mx-auto mt-3 max-w-[300px] text-[13px] leading-6 text-muted-foreground/52">
+            Este é um espaço de acolhimento. Deus vê o seu coração, e você pode
+            descansar sem precisar fingir força agora.
+          </p>
         </div>
-
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold/62">
-          Lugar seguro
-        </p>
-
-        <h2 className="mt-2 font-display text-[28px] font-semibold text-foreground/96">
-          Você não está sozinho
-        </h2>
-
-        <p className="mx-auto mt-3 max-w-[300px] text-[13px] leading-6 text-muted-foreground/52">
-          Este é um espaço de acolhimento. Deus vê o seu coração, e você pode descansar sem precisar fingir força agora.
-        </p>
       </motion.div>
 
-      {/* Comfort verses */}
       <section className="space-y-3">
         <div className="flex items-center gap-2 px-1">
           <div className="flex h-7 w-7 items-center justify-center rounded-full border border-gold/10 bg-gold/8 text-gold-light">
@@ -99,39 +107,50 @@ const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
             transition={{ delay: 0.16 + i * 0.08, duration: 0.35 }}
             className="glass-card rounded-[22px] p-4"
           >
-            <p className="border-l-2 border-gold/20 pl-3 text-[13.5px] italic leading-6 text-foreground/82">
-              “{v.text}”
-            </p>
-            <span className="mt-2 block pl-3 text-[11px] font-medium text-gold/60">
-              {v.ref}
-            </span>
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-gold/10 bg-gold/8 text-gold-light">
+                <Quote size={12} strokeWidth={1.8} />
+              </div>
+
+              <div className="min-w-0">
+                <p className="border-l-2 border-gold/20 pl-3 text-[13.5px] italic leading-6 text-foreground/82">
+                  “{v.text}”
+                </p>
+                <span className="mt-2 block pl-3 text-[11px] font-medium text-gold/60">
+                  {v.ref}
+                </span>
+              </div>
+            </div>
           </motion.div>
         ))}
       </section>
 
-      {/* Prayer block */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.42, duration: 0.35 }}
-        className="glass-card rounded-[24px] border-gold/10 p-5"
+        className="glass-card relative overflow-hidden rounded-[24px] border-gold/10 p-5"
       >
-        <div className="mb-3 flex items-center gap-2 text-gold-light">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/10 bg-gold/8">
-            <HandHelping size={14} strokeWidth={1.8} />
-          </div>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
-            Oração
-          </span>
-        </div>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,215,102,0.06),transparent_34%)]" />
 
-        <p className="text-[13.5px] italic leading-6 text-foreground/76">
-          Senhor, Tu vês meu coração neste momento. Eu não preciso fingir que estou bem.
-          Abraça-me, sustenta minha alma, restaura minha esperança e me lembra que Tua presença continua comigo. Amém. 🙏
-        </p>
+        <div className="relative z-10">
+          <div className="mb-3 flex items-center gap-2 text-gold-light">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/10 bg-gold/8">
+              <HandHelping size={14} strokeWidth={1.8} />
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
+              Oração
+            </span>
+          </div>
+
+          <p className="text-[13.5px] italic leading-6 text-foreground/76">
+            Senhor, Tu vês meu coração neste momento. Eu não preciso fingir que
+            estou bem. Abraça-me, sustenta minha alma, restaura minha esperança
+            e me lembra que Tua presença continua comigo. Amém.
+          </p>
+        </div>
       </motion.div>
 
-      {/* Emotional choices */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -155,9 +174,11 @@ const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ delay: 0.58 + i * 0.06, duration: 0.3 }}
               whileTap={{ scale: 0.97 }}
+              whileHover={{ y: -2 }}
               onClick={() => onSelect(topic.label, topic.response)}
-              className={`group relative overflow-hidden rounded-[22px] border p-5 transition-all duration-300 ${
-                emotionStyles[topic.id] || "glass-card"
+              className={`group relative overflow-hidden rounded-[22px] border p-5 transition-all duration-300 hover:border-white/16 ${
+                emotionStyles[topic.id] ||
+                "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))]"
               }`}
             >
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.04),transparent_30%)] opacity-90" />
@@ -173,7 +194,6 @@ const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
         </div>
       </motion.div>
 
-      {/* Trust CTA */}
       <motion.button
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -186,7 +206,6 @@ const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
         Falar com alguém de confiança
       </motion.button>
 
-      {/* Modal */}
       <AnimatePresence>
         {showTalkModal && (
           <motion.div
@@ -213,8 +232,9 @@ const HelpTopics = ({ onSelect, onBack }: HelpTopicsProps) => {
               </h3>
 
               <p className="mt-3 text-[13px] leading-6 text-muted-foreground/56">
-                Se estiver passando por algo muito pesado, procure alguém de confiança —
-                um pastor, familiar, amigo próximo ou líder. Você não precisa enfrentar isso sozinho. 💙
+                Se estiver passando por algo muito pesado, procure alguém de
+                confiança — um pastor, familiar, amigo próximo ou líder. Você
+                não precisa enfrentar isso sozinho.
               </p>
 
               <p className="mt-4 text-[12px] font-medium text-foreground/72">

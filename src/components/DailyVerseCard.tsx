@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { BookOpen, Sparkles, Quote } from "lucide-react";
+import { BookOpen, Sparkles, Quote, ArrowRight, Star } from "lucide-react";
+import { useMemo } from "react";
 
 interface DailyVerseCardProps {
   onReflect: (verse: string) => void;
@@ -7,79 +8,94 @@ interface DailyVerseCardProps {
 
 const dailyVerses = [
   { ref: "Salmos 23:1", text: "O Senhor é o meu pastor; nada me faltará." },
-  {
-    ref: "Jeremias 29:11",
-    text: "Porque eu bem sei os planos que tenho para vocês, diz o Senhor, planos de paz e não de mal, para dar-lhes um futuro e uma esperança.",
-  },
-  {
-    ref: "Isaías 41:10",
-    text: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus.",
-  },
+  { ref: "Jeremias 29:11", text: "Porque eu bem sei os planos que tenho para vocês, diz o Senhor..." },
+  { ref: "Isaías 41:10", text: "Não temas, porque eu sou contigo; não te assombres..." },
   { ref: "Filipenses 4:13", text: "Tudo posso naquele que me fortalece." },
-  {
-    ref: "Provérbios 3:5-6",
-    text: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.",
-  },
-  {
-    ref: "Romanos 8:28",
-    text: "Sabemos que todas as coisas cooperam para o bem daqueles que amam a Deus.",
-  },
-  {
-    ref: "Mateus 11:28",
-    text: "Vinde a mim, todos os que estais cansados e sobrecarregados, e eu vos aliviarei.",
-  },
+  { ref: "Provérbios 3:5-6", text: "Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento." },
+  { ref: "Romanos 8:28", text: "Todas as coisas cooperam para o bem daqueles que amam a Deus." },
+  { ref: "Mateus 11:28", text: "Vinde a mim todos os que estais cansados e sobrecarregados..." },
 ];
 
-function getVerseOfDay() {
-  const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
-  );
-  return dailyVerses[dayOfYear % dailyVerses.length];
-}
-
 const DailyVerseCard = ({ onReflect }: DailyVerseCardProps) => {
-  const verse = getVerseOfDay();
+  const verse = useMemo(() => {
+    const dayOfYear = Math.floor(new Date().getTime() / 86400000);
+    return dailyVerses[dayOfYear % dailyVerses.length];
+  }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.28, duration: 0.45, ease: "easeOut" }}
-      className="verse-card relative w-full overflow-hidden rounded-[30px] p-6"
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className="relative w-full overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] p-6 shadow-2xl backdrop-blur-xl"
     >
-      {/* Ambient glows */}
-      <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[hsl(var(--blue-calm)/0.06)] blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-[hsl(var(--gold)/0.04)] blur-3xl" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.04),transparent_32%)]" />
+      {/* EFEITOS DE FUNDO (Glow & Mesh) */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_20%,rgba(96,165,250,0.15),transparent_50%)]" />
+        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_80%,rgba(217,167,74,0.1),transparent_50%)]" />
+      </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-4 text-center">
-        <div className="flex items-center gap-2 rounded-full border border-gold/10 bg-gold/8 px-3 py-1.5 text-gold-light">
-          <BookOpen size={13} strokeWidth={1.7} />
-          <span className="text-[9px] font-semibold uppercase tracking-[0.18em]">
-            Versículo do dia
+      {/* AURA ANIMADA CENTRAL */}
+      <motion.div
+        animate={{ 
+          scale: [1, 1.2, 1],
+          opacity: [0.1, 0.2, 0.1] 
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-40 w-40 rounded-full bg-blue-500/20 blur-[60px]"
+      />
+
+      <div className="relative z-10 flex flex-col items-center gap-6 text-center">
+
+        {/* BADGE SUPERIOR */}
+        <div className="flex items-center gap-2 px-4 py-1 rounded-full bg-white/5 border border-white/10">
+          <Star size={10} className="text-gold fill-gold" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold-light/80">
+            Inspiração Diária
           </span>
         </div>
 
-        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/10 text-blue-200">
-          <Quote size={16} strokeWidth={1.8} />
+        {/* CITAÇÃO */}
+        <div className="space-y-4">
+          <Quote size={24} className="mx-auto text-blue-400/40" />
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="font-display text-xl md:text-2xl leading-relaxed text-white/90 italic px-2"
+          >
+            “{verse.text}”
+          </motion.p>
+
+          <div className="inline-block px-4 py-1 rounded-lg bg-white/5 border border-white/5">
+            <p className="text-xs font-bold text-gold/60 tracking-widest uppercase">
+              {verse.ref}
+            </p>
+          </div>
         </div>
 
-        <p className="px-2 font-display text-[17px] leading-[1.8] text-foreground/86 italic">
-          “{verse.text}”
-        </p>
-
-        <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[11px] font-medium text-gold/62">
-          {verse.ref}
-        </span>
-
+        {/* BOTÃO DE AÇÃO */}
         <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => onReflect(`Refletir sobre ${verse.ref}: "${verse.text}"`)}
-          className="mt-1 flex items-center gap-2 rounded-full border border-blue-300/10 bg-[linear-gradient(145deg,rgba(96,165,250,0.12),rgba(96,165,250,0.06))] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-calm transition-all duration-200 hover:border-blue-300/16 hover:bg-[linear-gradient(145deg,rgba(96,165,250,0.16),rgba(96,165,250,0.08))]"
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => onReflect(`Gostaria de meditar e entender melhor o versículo de hoje: ${verse.ref} - "${verse.text}"`)}
+          className="group relative w-full flex items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gold p-4 text-sm font-bold text-black shadow-xl shadow-gold/20 transition-all"
         >
-          <Sparkles size={12} />
-          Refletir mais
+          {/* Efeito de brilho passando pelo botão */}
+          <motion.div 
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-1/2 skew-x-12"
+          />
+
+          <Sparkles size={18} className="animate-pulse" />
+          <span>Meditar com o Conselheiro</span>
+          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
         </motion.button>
+
+        <p className="text-[10px] text-white/20 font-medium uppercase tracking-tighter">
+          Toque para receber uma direção profética
+        </p>
       </div>
     </motion.div>
   );

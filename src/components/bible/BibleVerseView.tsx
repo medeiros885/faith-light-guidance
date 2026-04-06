@@ -1,19 +1,18 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart,
   Copy,
   Share2,
-  Sparkles,
   Check,
   BookOpenText,
   Quote,
   Wand2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BibleBook, BibleChapter } from "@/data/bible/types";
 import type { useFavoriteVerses } from "@/hooks/useFavoriteVerses";
-import BibleReadingMode from "./BibleReadingMode";
 
 interface BibleVerseViewProps {
   book: BibleBook;
@@ -22,234 +21,115 @@ interface BibleVerseViewProps {
   onReflect: (verse: string) => void;
 }
 
-const BibleVerseView = ({
-  book,
-  chapter,
-  favoriteHook,
-  onReflect,
-}: BibleVerseViewProps) => {
+const BibleVerseView = ({ book, chapter, favoriteHook, onReflect }: BibleVerseViewProps) => {
   const [copiedVerse, setCopiedVerse] = useState<number | null>(null);
   const [activeVerse, setActiveVerse] = useState<number | null>(null);
-  const [readingMode, setReadingMode] = useState(false);
   const { isFavorite, toggleFavorite } = favoriteHook;
 
+  const buildVerseReference = (verseNum: number) => `${book.name} ${chapter.number}:${verseNum}`;
+
   const handleCopy = async (verseNum: number, text: string) => {
-    const ref = `${book.name} ${chapter.number}:${verseNum}`;
-    const fullText = `"${text}" — ${ref}`;
-
-    try {
-      await navigator.clipboard.writeText(fullText);
-      setCopiedVerse(verseNum);
-      toast.success("Versículo copiado! 📋");
-      setTimeout(() => setCopiedVerse(null), 1800);
-    } catch {
-      toast.error("Não foi possível copiar");
-    }
-  };
-
-  const handleShare = async (verseNum: number, text: string) => {
-    const ref = `${book.name} ${chapter.number}:${verseNum}`;
-    const fullText = `"${text}" — ${ref}\n\n📖 Caminho Vivo`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: fullText });
-      } catch {
-        /* user cancelled */
-      }
-    } else {
-      await navigator.clipboard.writeText(fullText);
-      toast.success("Texto copiado para compartilhar! 📤");
-    }
-  };
-
-  const handleReflect = (verseNum: number, text: string) => {
-    const ref = `${book.name} ${chapter.number}:${verseNum}`;
-    onReflect(`Refletir sobre ${ref}: "${text}"`);
+    const ref = buildVerseReference(verseNum);
+    await navigator.clipboard.writeText(`"${text}" (${ref})`);
+    setCopiedVerse(verseNum);
+    toast.success("Copiado com sucesso");
+    setTimeout(() => setCopiedVerse(null), 2000);
   };
 
   return (
-    <>
-      <AnimatePresence>
-        {readingMode && (
-          <BibleReadingMode
-            book={book}
-            chapter={chapter}
-            onClose={() => setReadingMode(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      <div className="space-y-4 pb-8">
-        {/* Chapter hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-[28px] px-5 py-4"
-        >
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/10 text-blue-200 shadow-[0_0_18px_rgba(96,165,250,0.10)]">
-              <Quote size={16} strokeWidth={1.8} />
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-blue-100/58">
-                Leitura bíblica
-              </p>
-              <h2 className="mt-1 font-display text-[20px] font-semibold text-foreground/94">
-                {book.name} {chapter.number}
-              </h2>
-              <p className="mt-1 text-[12px] leading-5 text-muted-foreground/48">
-                Toque em um versículo para abrir ações rápidas, salvar, copiar ou refletir.
-              </p>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-gold/10 bg-gold/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold/72">
-                  cap. {chapter.number}
-                </span>
-                <span className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/42">
-                  {chapter.verses.length} versículos
-                </span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Reading mode toggle */}
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setReadingMode(true)}
-          className="glass-card flex w-full items-center justify-center gap-2 rounded-[22px] py-3.5 text-[12px] font-medium text-blue-calm/85 transition-all duration-200 hover:text-blue-calm"
-        >
-          <BookOpenText size={15} />
-          Modo leitura imersivo
-        </motion.button>
-
-        {/* Verse list */}
-        <div className="space-y-2">
-          {chapter.verses.map((verse, i) => {
-            const isActive = activeVerse === verse.number;
-            const isFav = isFavorite(book.id, chapter.number, verse.number);
-
-            return (
-              <motion.div
-                key={verse.number}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.018, 0.32), duration: 0.26 }}
-              >
-                <div
-                  className={`rounded-[22px] border transition-all duration-250 ${
-                    isActive
-                      ? "border-blue-300/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.065),rgba(255,255,255,0.03))] shadow-[0_14px_28px_rgba(0,0,0,0.18)]"
-                      : "border-transparent bg-transparent"
-                  }`}
-                >
-                  <button
-                    onClick={() => setActiveVerse(isActive ? null : verse.number)}
-                    className="group w-full rounded-[22px] px-3 py-3 text-left transition-colors duration-200"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold transition-all duration-200 ${
-                          isActive
-                            ? "border-gold/16 bg-gold/10 text-gold"
-                            : "border-white/8 bg-white/[0.03] text-gold/55 group-hover:text-gold/75"
-                        }`}
-                      >
-                        {verse.number}
-                      </div>
-
-                      <p
-                        className={`flex-1 text-[14px] leading-[1.95] transition-colors duration-200 ${
-                          isActive
-                            ? "text-foreground/92"
-                            : "text-foreground/80 group-hover:text-foreground/92"
-                        }`}
-                      >
-                        {verse.text}
-                      </p>
-                    </div>
-                  </button>
-
-                  <AnimatePresence>
-                    {isActive && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="px-3 pb-3 pl-12">
-                          <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-3 py-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <motion.button
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() =>
-                                  toggleFavorite({
-                                    bookId: book.id,
-                                    bookName: book.name,
-                                    chapter: chapter.number,
-                                    verse: verse.number,
-                                    text: verse.text,
-                                  })
-                                }
-                                className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-200 ${
-                                  isFav
-                                    ? "border-gold/16 bg-gold/10 text-gold"
-                                    : "border-white/8 bg-white/[0.03] text-muted-foreground/38 hover:border-gold/12 hover:bg-gold/6 hover:text-gold/75"
-                                }`}
-                                aria-label="Favoritar versículo"
-                              >
-                                <Heart size={16} fill={isFav ? "currentColor" : "none"} />
-                              </motion.button>
-
-                              <motion.button
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => handleCopy(verse.number, verse.text)}
-                                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-muted-foreground/38 transition-all duration-200 hover:border-white/12 hover:text-foreground/72"
-                                aria-label="Copiar versículo"
-                              >
-                                {copiedVerse === verse.number ? (
-                                  <Check size={16} className="text-emerald-400" />
-                                ) : (
-                                  <Copy size={16} />
-                                )}
-                              </motion.button>
-
-                              <motion.button
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => handleShare(verse.number, verse.text)}
-                                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-muted-foreground/38 transition-all duration-200 hover:border-white/12 hover:text-foreground/72"
-                                aria-label="Compartilhar versículo"
-                              >
-                                <Share2 size={16} />
-                              </motion.button>
-
-                              <motion.button
-                                whileTap={{ scale: 0.97 }}
-                                onClick={() => handleReflect(verse.number, verse.text)}
-                                className="ml-auto flex items-center gap-2 rounded-full border border-blue-300/10 bg-[linear-gradient(145deg,rgba(96,165,250,0.12),rgba(96,165,250,0.06))] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-calm transition-all duration-200 hover:border-blue-300/16 hover:bg-[linear-gradient(145deg,rgba(96,165,250,0.16),rgba(96,165,250,0.08))]"
-                              >
-                                <Wand2 size={12} />
-                                Refletir com IA
-                              </motion.button>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-            );
-          })}
+    <div className="space-y-6 pb-20">
+      {/* Header Imersivo */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }} 
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-premium rounded-[32px] p-6 border border-white/5 relative overflow-hidden"
+      >
+        <div className="absolute -right-6 -top-6 opacity-5 rotate-12">
+          <Quote size={120} />
         </div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gold/60">Lendo Agora</span>
+          </div>
+          <h2 className="text-3xl font-display font-bold text-white leading-tight">
+            {book.name} <span className="text-gold/80">{chapter.number}</span>
+          </h2>
+          <p className="text-xs text-white/40 mt-2 max-w-[220px]">
+            Toque nos versículos para meditar profundamente em cada palavra.
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Lista de Versículos */}
+      <div className="space-y-3">
+        {chapter.verses.map((verse, i) => {
+          const isActive = activeVerse === verse.number;
+          const isFav = isFavorite(book.id, chapter.number, verse.number);
+
+          return (
+            <motion.div
+              key={verse.number}
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.03 }}
+              className={`relative rounded-3xl transition-all duration-500 ${
+                isActive ? 'bg-white/[0.04] border-white/10 ring-1 ring-gold/20' : 'bg-transparent border-transparent'
+              } border`}
+            >
+              <button
+                onClick={() => setActiveVerse(isActive ? null : verse.number)}
+                className="w-full p-4 text-left group"
+              >
+                <div className="flex gap-4">
+                  <span className={`text-[10px] font-black mt-1.5 transition-colors ${isActive ? 'text-gold' : 'text-white/20'}`}>
+                    {verse.number}
+                  </span>
+                  <p className={`text-[15px] leading-[1.8] transition-all ${isActive ? 'text-white font-medium' : 'text-white/70 group-hover:text-white/90'}`}>
+                    {verse.text}
+                  </p>
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="px-4 pb-4"
+                  >
+                    <div className="flex items-center gap-2 p-2 bg-black/40 backdrop-blur-md rounded-2xl border border-white/5">
+                      <button 
+                        onClick={() => toggleFavorite({ bookId: book.id, bookName: book.name, chapter: chapter.number, verse: verse.number, text: verse.text })}
+                        className={`p-3 rounded-xl transition-colors ${isFav ? 'bg-gold/20 text-gold' : 'hover:bg-white/5 text-white/40'}`}
+                      >
+                        <Heart size={18} fill={isFav ? "currentColor" : "none"} />
+                      </button>
+
+                      <button 
+                        onClick={() => handleCopy(verse.number, verse.text)}
+                        className="p-3 rounded-xl hover:bg-white/5 text-white/40 transition-colors"
+                      >
+                        {copiedVerse === verse.number ? <Check size={18} className="text-emerald-400" /> : <Copy size={18} />}
+                      </button>
+
+                      <button 
+                        onClick={() => onReflect(`Refletir sobre ${book.name} ${chapter.number}:${verse.number}: "${verse.text}"`)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold py-3 rounded-xl transition-all active:scale-95"
+                      >
+                        <Wand2 size={16} />
+                        <span className="text-[11px] font-black uppercase tracking-widest">Refletir com IA</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
       </div>
-    </>
+    </div>
   );
 };
 

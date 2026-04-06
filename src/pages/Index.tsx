@@ -1,777 +1,286 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Mic,
-  MicOff,
-  Send,
-  ArrowLeft,
-  BookOpen,
-  Heart,
-  Home,
-  MessageCircle,
-  Sparkles,
-} from "lucide-react";
-import { toast } from "sonner";
-import bibleLogo from "@/assets/bible-logo.png";
-import SuggestionCard from "@/components/SuggestionCard";
-import ResponseView from "@/components/ResponseView";
-import HelpTopics from "@/components/HelpTopics";
-import TypingIndicator from "@/components/TypingIndicator";
-import DailyVerseCard from "@/components/DailyVerseCard";
-import BibleReader from "@/components/bible/BibleReader";
-import QuickActions from "@/components/QuickActions";
-import FollowUpButtons from "@/components/FollowUpButtons";
-import StreakBadge from "@/components/StreakBadge";
-import DailyMessage from "@/components/DailyMessage";
-import EmotionSelector from "@/components/EmotionSelector";
-import type { UserEmotion } from "@/components/EmotionSelector";
-import GuidedCalm from "@/components/GuidedCalm";
-import FloatingBackground from "@/components/FloatingBackground";
-import ListenButton from "@/components/ListenButton";
-import { useDailyStreak } from "@/hooks/useDailyStreak";
-import type { BibleResponse } from "@/data/mockResponses";
-import { generateAIResponse } from "@/services/ai";
+import { BookOpen, MessageSquare, Send, ChevronLeft, Sparkles, Search, Settings2, Check, X, Type, Heart, Trash2, Share2 } from "lucide-react"; // Adicionamos Share2
+import { generateAIResponse } from "../services/groqApi"; 
+import WelcomeScreen from "../components/WelcomeScreen";
+import TypingIndicator from "../components/TypingIndicator";
 
-type Screen = "home" | "help" | "chat" | "bible";
+interface BibliaJSON { abbrev: string; chapters: string[][]; name: string; }
+interface Favorite { id: string; book: string; chapter: number; verse: number; text: string; version: string; }
 
-const SHOW_DEBUG_PANEL = false;
-
-const FALLBACK_RESPONSE: BibleResponse = {
-  acolhimento: "Estou aqui com você.",
-  contexto: "Tive dificuldade para montar a resposta agora.",
-  explicacao: "Pode ter acontecido um erro temporário na conexão com a resposta.",
-  aplicacao: "Tente enviar sua pergunta novamente em alguns segundos.",
-  versiculos: ["Salmos 46:1 — Deus é o nosso refúgio e fortaleza."],
-  oracao: "Senhor, traz paz e clareza neste momento. Amém.",
-  followUp: "Quer tentar perguntar de novo?",
-};
-
-interface ChatEntry {
-  question: string;
-  response: BibleResponse | null;
-}
-
-const suggestions = [
-  "O que é fé segundo a Bíblia?",
-  "Como vencer a ansiedade com a Palavra?",
-  "Quem foi o apóstolo Paulo?",
-  "O que a Bíblia diz sobre perdão?",
+const VERSOES = [
+  { id: "acf", nome: "Almeida Corrigida Fiel" },
+  { id: "nvi", nome: "Nova Versão Internacional" },
+  { id: "aa", nome: "Almeida Atualizada" },
 ];
 
-const loadingHeaderPhrases = [
-  "Preparando uma resposta com carinho...",
-  "Buscando direção na Palavra...",
-  "Meditando nas Escrituras...",
-  "Organizando uma resposta pra você...",
-];
-
-const Index = () => {
-  const [screen, setScreen] = useState<Screen>("home");
-  const [input, setInput] = useState("");
-  const [chatHistory, setChatHistory] = useState<ChatEntry[]>([]);
+export default function Index() {
+  const [activeTab, setActiveTab] = useState<"chat" | "biblia" | "home">("home");
+  const [messages, setMessages] = useState<any[]>([]);
+  const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [voiceStatus, setVoiceStatus] = useState<"idle" | "listening" | "processing">("idle");
-  const [userEmotion, setUserEmotion] = useState<UserEmotion>(null);
-  const [showGuidedCalm, setShowGuidedCalm] = useState(false);
-  const [headerPhrase] = useState(
-    () => loadingHeaderPhrases[Math.floor(Math.random() * loadingHeaderPhrases.length)]
-  );
-  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [isChatActive, setIsChatActive] = useState(false);
 
-  const addDebug = useCallback((msg: string) => {
-    const line = `${new Date().toLocaleTimeString("pt-BR")} ${msg}`;
-    console.log("[DEBUG PANEL]", line);
-    setDebugLog((prev) => [...prev.slice(-29), line]);
-  }, []);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [fontSize, setFontSize] = useState(16);
+  const [isSerif, setIsSerif] = useState(false);
+  const [version, setVersion] = useState("acf"); 
+  const [fullBiblia, setFullBiblia] = useState<BibliaJSON[]>([]);
+  const [bibliaView, setBibliaView] = useState<"livros" | "capitulos" | "versiculos" | "favoritos">("livros");
+  const [selectedBook, setSelectedBook] = useState<BibliaJSON | null>(null);
+  const [selectedChapterIndex, setSelectedChapterIndex] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loadingBiblia, setLoadingBiblia] = useState(false);
+  const [showVersionMenu, setShowVersionMenu] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
-  const handleSubmitRef = useRef<(q: string) => void>(() => {});
-  const { streakCount, recordInteraction } = useDailyStreak();
 
   useEffect(() => {
-    if (userEmotion) localStorage.setItem("cv-emotion", userEmotion);
-  }, [userEmotion]);
+    const savedFavs = localStorage.getItem("caminho_vivo_favs");
+    if (savedFavs) setFavorites(JSON.parse(savedFavs));
 
-  useEffect(() => {
-    const saved = localStorage.getItem("cv-emotion") as UserEmotion;
-    if (saved) setUserEmotion(saved);
-  }, []);
-
-  useEffect(() => {
-    recordInteraction();
-  }, [recordInteraction]);
-
-  useEffect(() => {
-    if (userEmotion === "ansioso") {
-      const t = setTimeout(() => setShowGuidedCalm(true), 1500);
-      return () => clearTimeout(t);
-    }
-  }, [userEmotion]);
-
-  useEffect(() => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-
-    const recognition = new SR();
-    recognition.lang = "pt-BR";
-    recognition.continuous = false;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results)
-        .map((r: any) => r[0].transcript)
-        .join("");
-
-      setInput(transcript);
-
-      if (event.results[event.results.length - 1].isFinal) {
-        const finalText = Array.from(event.results)
-          .map((r: any) => r[0].transcript)
-          .join("");
-
-        setIsListening(false);
-
-        if (finalText.trim()) {
-          setVoiceStatus("processing");
-          setTimeout(() => {
-            setVoiceStatus("idle");
-            handleSubmitRef.current(finalText);
-          }, 1200);
-        }
-      }
-    };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-      setVoiceStatus("idle");
-    };
-
-    recognition.onend = () => setIsListening(false);
-    recognitionRef.current = recognition;
-
-    return () => {
-      recognition.abort();
-    };
-  }, []);
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) return;
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      setVoiceStatus("idle");
-    } else {
-      setInput("");
-      setVoiceStatus("listening");
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  };
-
-  const scrollToBottom = useCallback(() => {
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }, 120);
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [chatHistory, isLoading, scrollToBottom]);
-
-  useEffect(() => {
-    if (screen === "chat") inputRef.current?.focus();
-  }, [screen]);
-
-  const requestAIResponse = useCallback(
-    async (question: string, append = true) => {
-      setIsLoading(true);
-      recordInteraction();
-
-      if (append) {
-        setChatHistory((prev) => [...prev, { question, response: null }]);
-      } else {
-        setChatHistory([{ question, response: null }]);
-      }
-
-      setScreen("chat");
-      setInput("");
-
+    const loadBiblia = async () => {
+      setLoadingBiblia(true);
       try {
-        addDebug(`Sending to AI: "${question.slice(0, 60)}${question.length > 60 ? "…" : ""}"`);
+        const res = await fetch(`https://raw.githubusercontent.com/thiagobodruk/biblia/master/json/${version}.json`);
+        const data = await res.json();
+        setFullBiblia(data);
+      } catch (e) { console.error(e); } finally { setLoadingBiblia(false); }
+    };
+    loadBiblia();
+  }, [version]);
 
-        const raw = await generateAIResponse(question, userEmotion, addDebug);
+  useEffect(() => {
+    localStorage.setItem("caminho_vivo_favs", JSON.stringify(favorites));
+  }, [favorites]);
 
-        const safeResponse: BibleResponse = raw || FALLBACK_RESPONSE;
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, isLoading, isChatActive]);
 
-        const isExactFallback =
-          safeResponse.acolhimento === FALLBACK_RESPONSE.acolhimento &&
-          safeResponse.contexto === FALLBACK_RESPONSE.contexto &&
-          safeResponse.explicacao === FALLBACK_RESPONSE.explicacao &&
-          safeResponse.aplicacao === FALLBACK_RESPONSE.aplicacao &&
-          safeResponse.oracao === FALLBACK_RESPONSE.oracao &&
-          safeResponse.followUp === FALLBACK_RESPONSE.followUp &&
-          Array.isArray(safeResponse.versiculos) &&
-          safeResponse.versiculos.join(" | ") === FALLBACK_RESPONSE.versiculos.join(" | ");
-
-        addDebug(
-          isExactFallback
-            ? "Response valid: ✗ fallback returned"
-            : "Response valid: ✓ pastoral response returned"
-        );
-
-        setChatHistory((prev) =>
-          prev.map((entry, i) =>
-            i === prev.length - 1 && entry.response === null
-              ? { ...entry, response: safeResponse }
-              : entry
-          )
-        );
-      } catch (error) {
-        const errMsg = String(error);
-        addDebug(`Error caught: ${errMsg.slice(0, 100)}`);
-        console.error("Erro ao gerar resposta:", error);
-
-        setChatHistory((prev) =>
-          prev.map((entry, i) =>
-            i === prev.length - 1 && entry.response === null
-              ? { ...entry, response: FALLBACK_RESPONSE }
-              : entry
-          )
-        );
-
-        toast.error("Não consegui responder agora. Tente novamente.");
-      } finally {
-        setIsLoading(false);
+  // FUNÇÃO DE COMPARTILHAMENTO NATIVO
+  const handleShare = async (title: string, text: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Caminho Vivo',
+          text: `"${text}" - ${title} (Via App Caminho Vivo) 📖✨`,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.log("Erro ao compartilhar");
       }
-    },
-    [recordInteraction, userEmotion, addDebug]
-  );
-
-  const handleSubmit = (question: string) => {
-    addDebug(`handleSubmit: "${question.slice(0, 50)}" | loading: ${isLoading}`);
-    if (!question.trim() || isLoading) return;
-    void requestAIResponse(question, screen === "chat");
+    } else {
+      alert("Seu navegador não suporta compartilhamento direto. Copie o texto manualmente.");
+    }
   };
 
-  handleSubmitRef.current = handleSubmit;
+  const toggleFavorite = (book: string, chapter: number, verse: number, text: string) => {
+    const id = `${book}-${chapter}-${verse}-${version}`;
+    const exists = favorites.find(f => f.id === id);
+    if (exists) setFavorites(favorites.filter(f => f.id !== id));
+    else setFavorites([...favorites, { id, book, chapter, verse, text, version }]);
+  };
 
-  const handleHelpSelect = (label: string, response: BibleResponse) => {
-    const question = `Preciso de ajuda com: ${label}`;
-    setChatHistory([{ question, response: null }]);
-    setScreen("chat");
+  const handleSendMessage = async (text: string) => {
+    const msg = text || inputText;
+    if (!msg.trim() || isLoading) return;
+    setIsChatActive(true);
+    setActiveTab("chat");
+    const newUserMsg = { id: Date.now(), text: msg, sender: "user", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+    const updatedMessages = [...messages, newUserMsg];
+    setMessages(updatedMessages);
+    setInputText("");
     setIsLoading(true);
 
-    setTimeout(() => {
-      setChatHistory([{ question, response }]);
-      setIsLoading(false);
-    }, 1200);
+    try {
+      const history = updatedMessages.slice(-4).map(m => ({
+        role: m.sender === "user" ? "user" : "assistant",
+        content: m.text
+      }));
+      const res = await generateAIResponse(history);
+      const formatted = `${res.acolhimento}\n\n${res.explicacao}\n\n💡 APLICAÇÃO: ${res.aplicacao}\n\n📖 VERSÍCULOS: ${res.versiculos.join(" | ")}\n\n🙏 ORAÇÃO: ${res.oracao}\n\n---\n${res.followUp}`;
+      setMessages(prev => [...prev, { id: Date.now() + 1, text: formatted, sender: "ai", time: "agora" }]);
+    } catch (e) { console.error(e); } finally { setIsLoading(false); }
   };
 
-  const handleBack = () => {
-    setScreen("home");
-    setChatHistory([]);
-    setIsLoading(false);
-    setVoiceStatus("idle");
-  };
-
-  const handleReflect = (verseText: string) => {
-    recordInteraction();
-    void requestAIResponse(verseText, false);
-  };
-
-  const getGreeting = useMemo(() => {
-    const h = new Date().getHours();
-    if (h < 12) return "Bom dia ☀️";
-    if (h < 18) return "Boa tarde 🌤️";
-    return "Boa noite 🌙";
-  }, []);
-
-  const showFollowUp =
-    screen === "chat" &&
-    !isLoading &&
-    chatHistory.length > 0 &&
-    chatHistory[chatHistory.length - 1].response !== null;
-
-  if (screen === "bible") {
-    return (
-      <>
-        <FloatingBackground />
-        <BibleReader onBack={handleBack} onReflect={handleReflect} />
-      </>
-    );
-  }
+  const filteredLivros = fullBiblia.filter(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col">
-      <FloatingBackground />
+    <div className="h-screen w-full bg-black text-white overflow-hidden font-sans">
+      <AnimatePresence mode="wait">
+        {!isChatActive ? (
+          <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full w-full flex flex-col">
 
-      <AnimatePresence>
-        {screen === "chat" && (
-          <motion.header
-            initial={{ opacity: 0, y: -14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -14 }}
-            className="sticky top-0 z-10 border-b border-border/10 bg-background/78 backdrop-blur-2xl"
-          >
-            <div className="mx-auto flex max-w-lg items-center gap-3 px-5 py-3">
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={handleBack}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-muted-foreground transition-all duration-200 hover:border-white/12 hover:bg-white/[0.05] hover:text-foreground"
-              >
-                <ArrowLeft size={18} />
-              </motion.button>
+            <header className="px-6 pt-12 pb-4 flex justify-between items-center bg-black/80 backdrop-blur-md sticky top-0 z-[60] border-b border-white/5">
+               <div className="flex-1">
+                 <h1 className="text-2xl font-black italic tracking-tighter uppercase">CAMINHO <span className="text-[#C4A456]">VIVO</span></h1>
+                 <button onClick={() => setShowVersionMenu(!showVersionMenu)} className="flex items-center gap-1.5 text-[9px] text-[#C4A456] uppercase tracking-[0.2em] font-black mt-1 bg-[#C4A456]/10 px-2 py-1 rounded-md">
+                   {VERSOES.find(v => v.id === version)?.nome} <Settings2 size={10} />
+                 </button>
+               </div>
 
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/10 bg-gold/8 shadow-[0_0_18px_rgba(255,215,102,0.05)]">
-                <img src={bibleLogo} alt="" className="h-5 w-5 opacity-90" />
-              </div>
+               {activeTab === "biblia" && bibliaView !== "livros" ? (
+                 <button onClick={() => setBibliaView(bibliaView === "favoritos" ? "livros" : bibliaView === "versiculos" ? "capitulos" : "livros")} className="p-2.5 bg-white/5 rounded-full text-[#C4A456]">
+                   <ChevronLeft size={22} />
+                 </button>
+               ) : (
+                 <div className="flex gap-2">
+                   <button onClick={() => setFontSize(prev => Math.min(prev + 2, 24))} className="p-2 bg-white/5 rounded-full text-white/40"><Type size={16} /></button>
+                   <button onClick={() => setIsSerif(!isSerif)} className={`p-2 rounded-full border transition-colors ${isSerif ? "border-[#C4A456] text-[#C4A456]" : "border-white/5 text-white/40"}`}>
+                      <span className="font-serif font-bold text-xs">Aa</span>
+                   </button>
+                 </div>
+               )}
+            </header>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate font-display text-sm font-semibold text-gold">
-                    Caminho Vivo
-                  </span>
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400/80" />
-                </div>
+            <AnimatePresence>
+              {showVersionMenu && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute top-24 left-6 right-6 bg-[#161616] border border-white/10 rounded-3xl p-2 z-[70] shadow-2xl">
+                  {VERSOES.map((v) => (
+                    <button key={v.id} onClick={() => { setVersion(v.id); setShowVersionMenu(false); }} className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl text-xs font-bold transition-all ${version === v.id ? "bg-[#C4A456] text-black" : "text-white/40 hover:bg-white/5"}`}>
+                      {v.nome} {version === v.id && <Check size={14} />}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-                <AnimatePresence mode="wait">
-                  {isLoading ? (
-                    <motion.span
-                      key="loading"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="block truncate text-[10px] italic text-blue-calm"
-                    >
-                      {headerPhrase}
-                    </motion.span>
+            <main className="flex-1 overflow-y-auto px-4 pb-60 no-scrollbar">
+              {(activeTab === "home" || activeTab === "chat") ? (
+                <WelcomeScreen onSelectSuggestion={handleSendMessage} />
+              ) : (
+                <div className="pt-4">
+                  {loadingBiblia ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-white/10 animate-pulse font-black uppercase tracking-[0.3em] text-[10px]">Lendo os pergaminhos...</div>
                   ) : (
-                    <motion.span
-                      key="online"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="block text-[10px] text-muted-foreground/42"
-                    >
-                      disponível
-                    </motion.span>
+                    <>
+                      {bibliaView === "livros" && (
+                        <button onClick={() => setBibliaView("favoritos")} className="w-full bg-gradient-to-r from-[#C4A456] to-[#dfc380] p-6 rounded-[32px] mb-6 flex items-center justify-between text-black shadow-xl">
+                          <div className="flex items-center gap-4">
+                            <div className="bg-black/10 p-3 rounded-2xl"><Heart size={24} fill="currentColor" /></div>
+                            <div className="text-left">
+                              <h3 className="font-black uppercase tracking-tighter text-lg leading-none">Meu Altar</h3>
+                              <p className="text-[10px] font-bold opacity-60 uppercase mt-1 tracking-widest">{favorites.length} guardados</p>
+                            </div>
+                          </div>
+                          <ChevronLeft size={20} className="rotate-180 opacity-40" />
+                        </button>
+                      )}
+
+                      {bibliaView === "favoritos" && (
+                        <div className="space-y-6 pb-20">
+                          <h2 className="text-xl font-black text-[#C4A456] mb-8 text-center italic uppercase">Palavras Guardadas</h2>
+                          {favorites.map(f => (
+                            <div key={f.id} className="bg-[#121212] p-7 rounded-[40px] border border-white/5 shadow-2xl">
+                              <p className="text-sm leading-relaxed mb-4 italic">"{f.text}"</p>
+                              <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[#C4A456]">{f.book} {f.chapter}:{f.verse}</span>
+                                <div className="flex gap-2">
+                                  <button onClick={() => handleShare(`${f.book} ${f.chapter}:${f.verse}`, f.text)} className="p-2 text-white/20"><Share2 size={16} /></button>
+                                  <button onClick={() => setFavorites(favorites.filter(fav => fav.id !== f.id))} className="p-2 text-white/20"><Trash2 size={16} /></button>
+                                  <button onClick={() => handleSendMessage(`Refletir sobre o meu favorito: ${f.book} ${f.chapter}:${f.verse}`)} className="p-2 text-[#C4A456]"><Sparkles size={16} /></button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {bibliaView === "livros" && (
+                        <>
+                          <div className="bg-[#121212] border border-white/10 rounded-2xl p-4 flex items-center gap-3 mb-6 mx-2">
+                            <Search size={18} className="text-white/20" />
+                            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Pesquisar livro..." className="bg-transparent outline-none text-sm w-full text-white" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 pb-10">
+                            {filteredLivros.map((l) => (
+                              <button key={l.abbrev} onClick={() => { setSelectedBook(l); setBibliaView("capitulos"); }} className="bg-[#121212] border border-white/5 p-6 rounded-[32px] text-left active:scale-95 shadow-lg">
+                                <h3 className="font-bold text-sm">{l.name}</h3>
+                                <p className="text-[9px] text-white/20 uppercase font-black">{l.chapters.length} Caps</p>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {bibliaView === "capitulos" && selectedBook && (
+                        <div className="grid grid-cols-5 gap-3 p-2">
+                          {selectedBook.chapters.map((_, i) => (
+                            <button key={i} onClick={() => { setSelectedChapterIndex(i); setBibliaView("versiculos"); }} className="aspect-square bg-[#121212] border border-white/10 rounded-2xl flex items-center justify-center font-black active:bg-[#C4A456] active:text-black shadow-md">
+                              {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {bibliaView === "versiculos" && selectedBook && selectedChapterIndex !== null && (
+                        <div className="space-y-6 pb-20">
+                          <h2 className="text-xl font-black text-[#C4A456] mb-10 text-center italic">{selectedBook.name} {selectedChapterIndex + 1}</h2>
+                          {selectedBook.chapters[selectedChapterIndex].map((texto, idx) => {
+                            const isFav = favorites.some(f => f.id === `${selectedBook.name}-${selectedChapterIndex + 1}-${idx + 1}-${version}`);
+                            return (
+                              <div key={idx} className="bg-[#121212]/60 p-7 rounded-[40px] border border-white/5 shadow-2xl relative">
+                                <div className="absolute top-6 right-6 flex gap-1">
+                                  <button onClick={() => handleShare(`${selectedBook.name} ${selectedChapterIndex + 1}:${idx + 1}`, texto)} className="p-2 text-white/10"><Share2 size={18} /></button>
+                                  <button onClick={() => toggleFavorite(selectedBook.name, selectedChapterIndex + 1, idx + 1, texto)} className="p-2">
+                                    <Heart size={18} className={isFav ? "text-[#C4A456]" : "text-white/10"} fill={isFav ? "currentColor" : "none"} />
+                                  </button>
+                                </div>
+                                <p style={{ fontSize: `${fontSize}px` }} className={`leading-relaxed text-white/90 pr-12 ${isSerif ? "font-serif" : "font-sans"}`}>
+                                  <span className="text-[#C4A456] font-black mr-3 text-xs italic">{idx + 1}</span>
+                                  {texto}
+                                </p>
+                                <button onClick={() => handleSendMessage(`Refletir sobre ${selectedBook.name} ${selectedChapterIndex + 1}:${idx + 1}: "${texto}"`)} className="mt-8 flex items-center gap-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#C4A456] bg-[#C4A456]/10 px-6 py-3.5 rounded-full border border-[#C4A456]/20 shadow-sm">
+                                  <Sparkles size={14} /> Refletir com IA
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
                   )}
-                </AnimatePresence>
+                </div>
+              )}
+            </main>
+
+            <nav className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-10 pt-4 bg-gradient-to-t from-black via-black/95 to-transparent">
+              <div className="max-w-md mx-auto flex bg-[#121212]/95 border border-white/10 backdrop-blur-3xl rounded-[32px] p-1.5 shadow-2xl">
+                <button onClick={() => { setActiveTab("biblia"); setBibliaView("livros"); setIsChatActive(false); }} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[28px] ${activeTab === "biblia" ? "bg-white/5 text-[#C4A456]" : "text-white/20"}`}>
+                  <BookOpen size={22} /> <span className="text-[11px] font-black uppercase tracking-[0.2em]">Bíblia</span>
+                </button>
+                <button onClick={() => { setActiveTab("chat"); setIsChatActive(true); }} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[28px] ${activeTab === "chat" ? "bg-[#C4A456] text-black font-bold" : "text-white/20"}`}>
+                  <MessageSquare size={22} /> <span className="text-[11px] font-black uppercase tracking-[0.2em]">Chat</span>
+                </button>
+              </div>
+            </nav>
+          </motion.div>
+        ) : (
+          <motion.div key="chat" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="h-full w-full flex flex-col bg-[#0b0b0b] z-[100]">
+            <header className="px-4 py-6 border-b border-white/5 flex items-center bg-black/80 backdrop-blur-xl">
+              <button onClick={() => { setIsChatActive(false); setActiveTab("home"); }} className="p-2 text-[#C4A456]"><ChevronLeft size={28} /></button>
+              <h2 className="ml-2 font-bold text-sm uppercase italic">Caminho Vivo <span className="text-[#C4A456] ml-1 animate-pulse">●</span></h2>
+            </header>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 pb-32 no-scrollbar text-white">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] px-5 py-4 rounded-[26px] whitespace-pre-wrap text-sm ${msg.sender === "user" ? "bg-[#C4A456] text-black font-medium" : "bg-[#1a1a1a] border border-white/5 shadow-xl"}`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {isLoading && <div className="flex justify-start pl-4"><TypingIndicator /></div>}
+            </div>
+            <div className="p-4 pb-10 bg-black border-t border-white/5">
+              <div className="max-w-2xl mx-auto flex items-center gap-3 bg-[#161616] border border-white/10 rounded-full px-5 py-3">
+                <input value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage("")} placeholder="Diga uma palavra de fé..." className="flex-1 bg-transparent outline-none text-sm text-white" />
+                <button onClick={() => handleSendMessage("")} disabled={isLoading || !inputText.trim()} className="p-2.5 rounded-full bg-[#C4A456] text-black"><Send size={18} fill="currentColor" /></button>
               </div>
             </div>
-          </motion.header>
+          </motion.div>
         )}
       </AnimatePresence>
-
-      <div
-        ref={scrollRef}
-        className="relative z-[1] flex-1 overflow-y-auto scroll-smooth pb-24"
-      >
-        <div className="mx-auto max-w-lg px-5">
-          <AnimatePresence mode="wait">
-            {screen === "home" && (
-              <motion.div
-                key="home"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.45 }}
-                className="flex flex-col items-center gap-8 pb-32 pt-10"
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.65, ease: "easeOut" }}
-                  className="w-full"
-                >
-                  <div className="glass-card rounded-[32px] px-6 py-6 text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-gold/10 bg-gold/8 shadow-[0_0_24px_rgba(255,215,102,0.05)]">
-                      <img
-                        src={bibleLogo}
-                        alt="Caminho Vivo"
-                        width={34}
-                        height={34}
-                        className="opacity-95"
-                      />
-                    </div>
-
-                    <div className="mb-3 flex justify-center">
-                      <StreakBadge count={streakCount} />
-                    </div>
-
-                    <h1 className="font-display text-[26px] font-semibold tracking-[0.01em] text-foreground/96">
-                      Caminho Vivo
-                    </h1>
-
-                    <p className="mt-2 text-sm font-medium text-foreground/86">
-                      {getGreeting}
-                    </p>
-
-                    <p className="mx-auto mt-2 max-w-[280px] text-[13px] leading-6 text-muted-foreground/52">
-                      Um espaço de direção, consolo e aconselhamento bíblico para o seu dia.
-                    </p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  className="w-full space-y-3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.1, duration: 0.45 }}
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/10 text-blue-200">
-                      <Sparkles size={13} strokeWidth={1.8} />
-                    </div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100/58">
-                      Como está seu coração agora?
-                    </p>
-                  </div>
-
-                  <EmotionSelector selected={userEmotion} onSelect={setUserEmotion} />
-                </motion.div>
-
-                <motion.div
-                  className="w-full"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.18, duration: 0.45 }}
-                >
-                  <div className="relative">
-                    <input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
-                      placeholder="Escreva ou fale sua pergunta..."
-                      aria-label="Escreva sua mensagem"
-                      className="home-input-glass breathing-border w-full rounded-[26px] px-5 py-4 pr-24 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
-                    />
-
-                    <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
-                      <motion.button
-                        onClick={toggleListening}
-                        whileTap={{ scale: 0.88 }}
-                        animate={isListening ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                        transition={
-                          isListening
-                            ? { duration: 1.4, repeat: Infinity }
-                            : { duration: 0.2 }
-                        }
-                        aria-label={isListening ? "Parar gravação" : "Gravar voz"}
-                        className={`flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${
-                          isListening
-                            ? "bg-[hsl(var(--gold)/0.14)] text-gold"
-                            : "text-gold/42 hover:text-gold/72"
-                        }`}
-                      >
-                        {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-                      </motion.button>
-
-                      <motion.button
-                        onClick={() => handleSubmit(input)}
-                        disabled={!input.trim() || isLoading}
-                        whileTap={{ scale: 0.88 }}
-                        aria-label="Enviar mensagem"
-                        className="flex h-11 w-11 items-center justify-center rounded-full bg-gold text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-15"
-                        style={{ boxShadow: "0 8px 18px hsl(43 74% 64% / 0.14)" }}
-                      >
-                        <Send size={16} />
-                      </motion.button>
-                    </div>
-                  </div>
-
-                  <AnimatePresence>
-                    {isListening && (
-                      <motion.p
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="mt-2 text-center text-[11px] italic text-blue-calm"
-                      >
-                        Pode falar, estou aqui 💙
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-
-                <div className="w-full space-y-4">
-                  <DailyMessage />
-                  <DailyVerseCard onReflect={handleReflect} />
-                </div>
-
-                <div className="w-full">
-                  <QuickActions onAction={handleSubmit} />
-                </div>
-
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setScreen("help")}
-                  className="gold-highlight-btn w-full rounded-[24px] px-6 py-[18px] text-[15px] font-semibold text-foreground/92"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.32, duration: 0.4 }}
-                >
-                  <span className="flex items-center justify-center gap-2.5">
-                    <Heart size={17} className="text-gold/70" strokeWidth={2} />
-                    💛 Preciso de ajuda hoje
-                  </span>
-                </motion.button>
-
-                <div className="w-full space-y-2.5">
-                  <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/30">
-                    Perguntas em destaque
-                  </p>
-                  {suggestions.map((s, i) => (
-                    <SuggestionCard key={s} text={s} index={i} onClick={handleSubmit} />
-                  ))}
-                </div>
-
-                <motion.p
-                  className="text-[11px] italic tracking-wide text-muted-foreground/28"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.65 }}
-                >
-                  Você não precisa caminhar sozinho. 💙
-                </motion.p>
-              </motion.div>
-            )}
-
-            {screen === "help" && (
-              <motion.div
-                key="help"
-                initial={{ opacity: 0, x: 14 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -14 }}
-                transition={{ duration: 0.3 }}
-                className="py-8"
-              >
-                <HelpTopics onSelect={handleHelpSelect} onBack={handleBack} />
-              </motion.div>
-            )}
-
-            {screen === "chat" && (
-              <motion.div
-                key="chat"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.26 }}
-                className="space-y-1 py-4"
-              >
-                {chatHistory.map((entry, i) => (
-                  <div key={i}>
-                    {entry.response ? (
-                      <div>
-                        <ResponseView question={entry.question} response={entry.response} />
-                        {i === chatHistory.length - 1 && (
-                          <div className="mb-2 -mt-1 flex justify-start pl-2">
-                            <ListenButton
-                              text={`${entry.response?.acolhimento ?? ""}. ${entry.response?.explicacao ?? ""}`}
-                              size="sm"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mb-2 flex justify-end">
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.94, y: 6 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          className="user-bubble max-w-[76%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed text-foreground/86"
-                        >
-                          {entry.question}
-                        </motion.div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                <AnimatePresence>{isLoading && <TypingIndicator />}</AnimatePresence>
-
-                {showFollowUp && (
-                  <FollowUpButtons onAction={(text) => handleSubmit(text)} />
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {screen !== "chat" && screen !== "help" && (
-        <motion.nav
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.48, duration: 0.35 }}
-          className="floating-navbar fixed bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-10 rounded-[30px] px-8 py-3.5"
-          role="navigation"
-          aria-label="Navegação principal"
-        >
-          <button
-            onClick={() => {
-              setScreen("home");
-              setChatHistory([]);
-            }}
-            className={`flex flex-col items-center gap-1 transition-colors duration-200 ${
-              screen === "home"
-                ? "text-gold"
-                : "text-muted-foreground/50 hover:text-foreground/72"
-            }`}
-          >
-            <Home size={20} />
-            <span className="text-[9px] font-medium">Início</span>
-          </button>
-
-          <button
-            onClick={() => setScreen("bible")}
-            className={`flex flex-col items-center gap-1 transition-colors duration-200 ${
-              screen === "bible"
-                ? "text-gold"
-                : "text-muted-foreground/50 hover:text-foreground/72"
-            }`}
-          >
-            <BookOpen size={20} />
-            <span className="text-[9px] font-medium">Bíblia</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setInput("");
-              setScreen("chat");
-            }}
-            className={`flex flex-col items-center gap-1 transition-colors duration-200 ${
-              screen === "chat" || screen === "help"
-                ? "text-gold"
-                : "text-muted-foreground/50 hover:text-foreground/72"
-            }`}
-          >
-            <MessageCircle size={20} />
-            <span className="text-[9px] font-medium">Chat</span>
-          </button>
-        </motion.nav>
-      )}
-
-      {(screen === "chat" || screen === "help") && (
-        <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-border/10 bg-background/82 px-4 pb-[env(safe-area-inset-bottom,16px)] pt-2.5 backdrop-blur-2xl">
-          <AnimatePresence>
-            {(isListening || voiceStatus === "processing") && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                className="mx-auto mb-2 max-w-lg text-center"
-              >
-                <span className="text-xs italic text-blue-calm">
-                  {isListening
-                    ? "Pode falar, estou aqui 💙"
-                    : "Entendi... deixa eu organizar uma resposta pra você 💙"}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="mx-auto flex max-w-lg items-center gap-2">
-            <motion.button
-              onClick={toggleListening}
-              animate={
-                isListening
-                  ? {
-                      scale: [1, 1.08, 1],
-                      boxShadow: [
-                        "0 0 0px hsl(213 55% 68% / 0)",
-                        "0 0 18px hsl(213 55% 68% / 0.2)",
-                        "0 0 0px hsl(213 55% 68% / 0)",
-                      ],
-                    }
-                  : { scale: 1 }
-              }
-              transition={
-                isListening
-                  ? { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                  : { duration: 0.2 }
-              }
-              whileTap={{ scale: 0.9 }}
-              aria-label={isListening ? "Parar gravação" : "Gravar voz"}
-              className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
-                isListening
-                  ? "bg-[hsl(var(--blue-soft)/0.12)] text-blue-calm"
-                  : "text-muted-foreground/45 hover:bg-secondary/30 hover:text-foreground/68"
-              }`}
-            >
-              {isListening ? <MicOff size={19} /> : <Mic size={19} />}
-            </motion.button>
-
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit(input)}
-              placeholder={isListening ? "Ouvindo..." : "Escreva ou fale…"}
-              aria-label="Campo de mensagem"
-              className="input-field flex-1 rounded-full px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/30 focus:outline-none"
-              readOnly={isListening}
-            />
-
-            <motion.button
-              onClick={() => handleSubmit(input)}
-              disabled={!input.trim() || isLoading}
-              whileTap={{ scale: 0.88 }}
-              aria-label="Enviar"
-              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gold text-primary-foreground transition-all duration-200 hover:bg-gold-light disabled:opacity-10"
-              style={{ boxShadow: "0 8px 18px hsl(43 74% 64% / 0.14)" }}
-            >
-              <Send size={17} />
-            </motion.button>
-          </div>
-        </div>
-      )}
-
-      <AnimatePresence>
-        {showGuidedCalm && <GuidedCalm onClose={() => setShowGuidedCalm(false)} />}
-      </AnimatePresence>
-
-      {import.meta.env.DEV && SHOW_DEBUG_PANEL && (
-        <div className="fixed bottom-0 left-0 right-0 z-[9999] max-h-48 overflow-y-auto border-t border-white/10 bg-black/95 px-3 py-2 font-mono text-[10px] leading-5">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="font-bold text-yellow-400">🔧 AI Debug Panel (dev only)</span>
-            <button
-              onClick={() => setDebugLog([])}
-              className="text-gray-500 hover:text-white"
-            >
-              clear
-            </button>
-          </div>
-          {debugLog.length === 0 ? (
-            <div className="text-gray-600">No activity yet — send a message to start.</div>
-          ) : (
-            debugLog.map((line, i) => {
-              const color =
-                line.includes("✓")
-                  ? "text-green-400"
-                  : line.includes("✗") ||
-                    line.includes("MISSING") ||
-                    line.includes("failed") ||
-                    line.includes("Error")
-                  ? "text-red-400"
-                  : line.includes("Retry") || line.includes("warn")
-                  ? "text-yellow-300"
-                  : "text-gray-300";
-              return (
-                <div key={i} className={color}>
-                  {line}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
     </div>
   );
-};
-
-export default Index;
+}

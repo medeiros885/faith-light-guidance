@@ -6,6 +6,7 @@ import {
   Flame,
   Star,
   Sparkles,
+  LibraryBig,
 } from "lucide-react";
 import type { BibleBookMeta } from "@/data/bible/types";
 
@@ -14,243 +15,115 @@ interface BibleBookListProps {
   onSelect: (book: BibleBookMeta) => void;
 }
 
-const popularBooks = ["gn", "sl", "pv", "mt", "jo", "rm", "ap"];
-const quickAccessBooks = ["sl", "pv", "is", "mt", "jo", "rm", "fp", "tg"];
+const popularIds = ["gn", "sl", "pv", "mt", "jo", "rm", "ap"];
+const quickIds = ["sl", "pv", "is", "mt", "jo", "rm", "fp", "tg"];
 
-function SectionHeader({
-  title,
-  subtitle,
-  icon,
-  accentClass,
-}: {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  accentClass: string;
-}) {
-  return (
-    <div className="flex items-end justify-between gap-3 px-1">
-      <div className="min-w-0">
-        <div className="mb-1.5 flex items-center gap-2">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-full border border-white/8 bg-white/[0.04] ${accentClass}`}>
-            {icon}
-          </div>
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${accentClass}`}>
-            {title}
-          </p>
-        </div>
-        <p className="text-[11px] text-muted-foreground/40">{subtitle}</p>
+const SectionHeader = ({ title, icon, accent }: { title: string; icon: React.ReactNode; accent: string }) => (
+  <div className="flex items-center justify-between px-1 mb-4">
+    <div className="flex items-center gap-3">
+      <div className={`p-2 rounded-xl bg-white/5 border border-white/5 ${accent}`}>
+        {icon}
+      </div>
+      <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${accent}`}>
+        {title}
+      </h3>
+    </div>
+    <div className="h-[1px] flex-1 bg-white/5 ml-4" />
+  </div>
+);
+
+const BookCard = ({ book, onSelect, accent }: { book: BibleBookMeta; onSelect: (b: BibleBookMeta) => void; accent: 'gold' | 'blue' }) => (
+  <motion.button
+    whileTap={{ scale: 0.95 }}
+    onClick={() => onSelect(book)}
+    className="group relative flex-shrink-0 w-[140px] aspect-[3/4] rounded-2xl overflow-hidden border border-white/5 bg-white/[0.02] p-4 text-left transition-all hover:border-white/20"
+  >
+    {/* Efeito de Lombada de Livro */}
+    <div className="absolute inset-y-0 left-0 w-[4px] bg-gradient-to-r from-black/20 to-transparent" />
+    <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl ${accent === 'gold' ? 'from-gold/10' : 'from-blue-500/10'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+
+    <div className="h-full flex flex-col justify-between relative z-10">
+      <div>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${accent === 'gold' ? 'bg-gold/10 border-gold/20 text-gold' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'}`}>
+          {book.abbrev}
+        </span>
+        <h4 className="mt-3 font-display text-[15px] font-bold leading-tight text-white/90 group-hover:text-white transition-colors">
+          {book.name}
+        </h4>
       </div>
 
-      <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/6 bg-white/[0.03] text-muted-foreground/28">
-        <ChevronRight size={13} />
+      <div className="flex items-center justify-between text-[9px] font-bold text-white/20 uppercase tracking-widest">
+        <span>{book.chapterCount} caps</span>
+        <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
       </div>
     </div>
-  );
-}
+  </motion.button>
+);
 
-function BookCard({
-  book,
-  index,
-  onSelect,
-  badge,
-  accent,
-}: {
-  book: BibleBookMeta;
-  index: number;
-  onSelect: (b: BibleBookMeta) => void;
-  badge?: string;
-  accent: "gold" | "blue";
-}) {
-  const accentStyles =
-    accent === "gold"
-      ? {
-          badge:
-            "text-gold/70 bg-gold/8 border-gold/10",
-          title:
-            "group-hover:text-gold-light",
-          glow:
-            "group-hover:shadow-[0_16px_30px_rgba(0,0,0,0.22),0_0_22px_hsl(43_74%_64%/0.05)]",
-        }
-      : {
-          badge:
-            "text-blue-calm bg-blue-400/8 border-blue-300/10",
-          title:
-            "group-hover:text-blue-ice",
-          glow:
-            "group-hover:shadow-[0_16px_30px_rgba(0,0,0,0.22),0_0_22px_hsl(216_86%_60%/0.05)]",
-        };
-
-  return (
-    <motion.button
-      key={book.id}
-      initial={{ opacity: 0, y: 10, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: Math.min(index * 0.035, 0.35), duration: 0.28 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={() => onSelect(book)}
-      className={`group bible-book-card snap-start relative w-[156px] flex-shrink-0 overflow-hidden rounded-[24px] p-4 text-left transition-all duration-300 ${accentStyles.glow}`}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.05),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.05),transparent_28%)] opacity-80" />
-
-      <div className="relative">
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <span
-            className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] ${accentStyles.badge}`}
-          >
-            {book.abbrev}
-          </span>
-
-          {badge && (
-            <span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/42">
-              {badge}
-            </span>
-          )}
+const HorizontalRow = ({ title, icon, items, onSelect, accent, colorClass }: any) => (
+  <section className="mb-10">
+    <SectionHeader title={title} icon={icon} accent={colorClass} />
+    <div className="flex gap-4 overflow-x-auto pb-4 px-1 no-scrollbar snap-x">
+      {items.map((book: any) => (
+        <div key={book.id} className="snap-center">
+          <BookCard book={book} onSelect={onSelect} accent={accent} />
         </div>
-
-        <p
-          className={`min-h-[40px] text-[14px] font-medium leading-5 text-foreground/88 transition-colors duration-300 ${accentStyles.title}`}
-        >
-          {book.name}
-        </p>
-
-        <div className="mt-4 flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground/38">
-            {book.chapterCount} capítulos
-          </span>
-
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-muted-foreground/38 transition-colors duration-300 group-hover:text-foreground/72">
-            <ChevronRight size={14} />
-          </div>
-        </div>
-      </div>
-    </motion.button>
-  );
-}
-
-function HorizontalRow({
-  title,
-  subtitle,
-  icon,
-  items,
-  onSelect,
-  accentClass,
-  accent,
-  badge,
-}: {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  items: BibleBookMeta[];
-  onSelect: (b: BibleBookMeta) => void;
-  accentClass: string;
-  accent: "gold" | "blue";
-  badge?: string;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  if (items.length === 0) return null;
-
-  return (
-    <section className="space-y-3">
-      <SectionHeader
-        title={title}
-        subtitle={subtitle}
-        icon={icon}
-        accentClass={accentClass}
-      />
-
-      <div
-        ref={scrollRef}
-        className="scrollbar-hide -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2"
-      >
-        {items.map((book, i) => (
-          <BookCard
-            key={book.id}
-            book={book}
-            index={i}
-            onSelect={onSelect}
-            badge={badge}
-            accent={accent}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
+      ))}
+    </div>
+  </section>
+);
 
 const BibleBookList = ({ books, onSelect }: BibleBookListProps) => {
-  const oldTestament = books.filter((b) => b.testament === "old");
-  const newTestament = books.filter((b) => b.testament === "new");
-  const popular = books.filter((b) => popularBooks.includes(b.id));
-  const quickAccess = books.filter((b) => quickAccessBooks.includes(b.id));
+  const oldT = books.filter(b => b.testament === "old");
+  const newT = books.filter(b => b.testament === "new");
+  const popular = books.filter(b => popularIds.includes(b.id));
 
   return (
-    <div className="space-y-7 pb-10">
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
+    <div className="pb-20">
+      {/* Banner de Boas-vindas à Biblioteca */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-[28px] px-5 py-4"
+        className="glass-premium rounded-[32px] p-6 mb-10 border border-white/5 relative overflow-hidden"
       >
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full border border-blue-300/10 bg-blue-400/10 text-blue-200 shadow-[0_0_18px_rgba(96,165,250,0.10)]">
-            <Sparkles size={16} strokeWidth={1.8} />
+        <LibraryBig size={60} className="absolute -right-4 -bottom-4 text-white/5 -rotate-12" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={14} className="text-gold" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gold/60">Santo Livro</span>
           </div>
-
-          <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-blue-100/58">
-              Leitura bíblica
-            </p>
-            <h2 className="mt-1 font-display text-[18px] font-semibold text-foreground/94">
-              Escolha um livro para começar
-            </h2>
-            <p className="mt-1 text-[12px] leading-5 text-muted-foreground/48">
-              Navegue por seções rápidas ou explore o Antigo e o Novo Testamento com mais calma.
-            </p>
-          </div>
+          <h2 className="text-2xl font-display font-bold text-white mb-2">Explore a Palavra</h2>
+          <p className="text-xs text-white/40 leading-relaxed max-w-[240px]">
+            Selecione um livro para mergulhar nos ensinamentos sagrados e encontrar paz.
+          </p>
         </div>
       </motion.div>
 
-      <HorizontalRow
-        title="Mais populares"
-        subtitle="Livros mais procurados para leitura e reflexão"
-        icon={<Star size={13} className="text-gold/70" />}
-        items={popular}
-        onSelect={onSelect}
-        accentClass="text-gold/72"
-        accent="gold"
-        badge="destaque"
+      <HorizontalRow 
+        title="Destaques" 
+        icon={<Star size={14} />} 
+        items={popular} 
+        onSelect={onSelect} 
+        accent="gold" 
+        colorClass="text-gold" 
       />
 
-      <HorizontalRow
-        title="Acesso rápido"
-        subtitle="Atalhos para livros muito usados no dia a dia"
-        icon={<Flame size={13} className="text-blue-calm" />}
-        items={quickAccess}
-        onSelect={onSelect}
-        accentClass="text-blue-calm"
-        accent="blue"
-        badge="rápido"
+      <HorizontalRow 
+        title="Antigo Testamento" 
+        icon={<BookOpen size={14} />} 
+        items={oldT} 
+        onSelect={onSelect} 
+        accent="gold" 
+        colorClass="text-white/40" 
       />
 
-      <HorizontalRow
-        title="Antigo Testamento"
-        subtitle="Lei, história, poesia e profetas"
-        icon={<BookOpen size={13} className="text-gold/70" />}
-        items={oldTestament}
-        onSelect={onSelect}
-        accentClass="text-gold/72"
-        accent="gold"
-      />
-
-      <HorizontalRow
-        title="Novo Testamento"
-        subtitle="Evangelhos, cartas e revelação"
-        icon={<BookOpen size={13} className="text-blue-calm" />}
-        items={newTestament}
-        onSelect={onSelect}
-        accentClass="text-blue-calm"
-        accent="blue"
+      <HorizontalRow 
+        title="Novo Testamento" 
+        icon={<Sparkles size={14} />} 
+        items={newT} 
+        onSelect={onSelect} 
+        accent="blue" 
+        colorClass="text-blue-400" 
       />
     </div>
   );
