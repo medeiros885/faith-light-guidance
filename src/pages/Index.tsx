@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, MessageSquare, Send, ChevronLeft, Sparkles, Search, Settings2, Check, X, Type, Heart, Trash2, Share2 } from "lucide-react"; // Adicionamos Share2
+import { BookOpen, MessageSquare, Send, ChevronLeft, Sparkles, Search, Settings2, Check, X, Type, Heart, Trash2, Share2 } from "lucide-react"; 
 import { generateAIResponse } from "../services/groqApi"; 
 import WelcomeScreen from "../components/WelcomeScreen";
 import TypingIndicator from "../components/TypingIndicator";
@@ -58,7 +58,6 @@ export default function Index() {
     if (scrollRef.current) scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading, isChatActive]);
 
-  // FUNÇÃO DE COMPARTILHAMENTO NATIVO
   const handleShare = async (title: string, text: string) => {
     if (navigator.share) {
       try {
@@ -99,9 +98,36 @@ export default function Index() {
         content: m.text
       }));
       const res = await generateAIResponse(history);
-      const formatted = `${res.acolhimento}\n\n${res.explicacao}\n\n💡 APLICAÇÃO: ${res.aplicacao}\n\n📖 VERSÍCULOS: ${res.versiculos.join(" | ")}\n\n🙏 ORAÇÃO: ${res.oracao}\n\n---\n${res.followUp}`;
+
+      // --- CORREÇÃO DEFINITIVA DOS VERSÍCULOS ---
+      const versiculosFormatados = res.versiculos.map((v: any) => {
+        if (typeof v === 'string') return v; 
+
+        // Busca a referência em qualquer formato que a IA mandar
+        let ref = v.referencia || v.reference || "";
+        if (!ref) {
+          const livro = v.livro || v.book || "Passagem";
+          const cap = v.capitulo || v.chapter || "";
+          const vers = v.versiculo || v.verse || "";
+          if (cap && vers) {
+            ref = `${livro} ${cap}:${vers}`;
+          } else {
+            ref = livro;
+          }
+        }
+
+        const txt = v.texto || v.text ? ` "${v.texto || v.text}"` : "";
+        return `• ${ref}${txt}`;
+      }).join("\n");
+
+      const formatted = `${res.acolhimento}\n\n${res.explicacao}\n\n💡 APLICAÇÃO: ${res.aplicacao}\n\n📖 VERSÍCULOS:\n${versiculosFormatados}\n\n🙏 ORAÇÃO: ${res.oracao}\n\n---\n${res.followUp}`;
+
       setMessages(prev => [...prev, { id: Date.now() + 1, text: formatted, sender: "ai", time: "agora" }]);
-    } catch (e) { console.error(e); } finally { setIsLoading(false); }
+    } catch (e) { 
+      console.error(e); 
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   const filteredLivros = fullBiblia.filter(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -151,6 +177,12 @@ export default function Index() {
                 <WelcomeScreen onSelectSuggestion={handleSendMessage} />
               ) : (
                 <div className="pt-4">
+                  {bibliaView === "livros" && (
+                    <button onClick={() => setActiveTab("home")} className="flex items-center gap-2 text-[#C4A456] mb-6 font-bold uppercase text-[10px] tracking-widest bg-white/5 px-4 py-2 rounded-full border border-white/10 w-fit active:scale-95 transition-all">
+                      <ChevronLeft size={16} /> Voltar para a Home
+                    </button>
+                  )}
+
                   {loadingBiblia ? (
                     <div className="flex flex-col items-center justify-center py-24 text-white/10 animate-pulse font-black uppercase tracking-[0.3em] text-[10px]">Lendo os pergaminhos...</div>
                   ) : (
@@ -245,8 +277,8 @@ export default function Index() {
               )}
             </main>
 
-            <nav className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-10 pt-4 bg-gradient-to-t from-black via-black/95 to-transparent">
-              <div className="max-w-md mx-auto flex bg-[#121212]/95 border border-white/10 backdrop-blur-3xl rounded-[32px] p-1.5 shadow-2xl">
+            <nav className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-10 pt-4 bg-gradient-to-t from-black via-black/95 to-transparent pointer-events-none">
+              <div className="max-w-md mx-auto flex bg-[#121212]/95 border border-white/10 backdrop-blur-3xl rounded-[32px] p-1.5 shadow-2xl pointer-events-auto">
                 <button onClick={() => { setActiveTab("biblia"); setBibliaView("livros"); setIsChatActive(false); }} className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[28px] ${activeTab === "biblia" ? "bg-white/5 text-[#C4A456]" : "text-white/20"}`}>
                   <BookOpen size={22} /> <span className="text-[11px] font-black uppercase tracking-[0.2em]">Bíblia</span>
                 </button>
@@ -257,11 +289,13 @@ export default function Index() {
             </nav>
           </motion.div>
         ) : (
-          <motion.div key="chat" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="h-full w-full flex flex-col bg-[#0b0b0b] z-[100]">
-            <header className="px-4 py-6 border-b border-white/5 flex items-center bg-black/80 backdrop-blur-xl">
+          <motion.div key="chat" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-0 flex flex-col bg-[#0b0b0b] z-[100]">
+
+            <header className="px-4 pt-12 pb-4 border-b border-white/5 flex items-center bg-black/80 backdrop-blur-xl">
               <button onClick={() => { setIsChatActive(false); setActiveTab("home"); }} className="p-2 text-[#C4A456]"><ChevronLeft size={28} /></button>
               <h2 className="ml-2 font-bold text-sm uppercase italic">Caminho Vivo <span className="text-[#C4A456] ml-1 animate-pulse">●</span></h2>
             </header>
+
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 pb-32 no-scrollbar text-white">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
@@ -272,12 +306,26 @@ export default function Index() {
               ))}
               {isLoading && <div className="flex justify-start pl-4"><TypingIndicator /></div>}
             </div>
-            <div className="p-4 pb-10 bg-black border-t border-white/5">
-              <div className="max-w-2xl mx-auto flex items-center gap-3 bg-[#161616] border border-white/10 rounded-full px-5 py-3">
-                <input value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage("")} placeholder="Diga uma palavra de fé..." className="flex-1 bg-transparent outline-none text-sm text-white" />
-                <button onClick={() => handleSendMessage("")} disabled={isLoading || !inputText.trim()} className="p-2.5 rounded-full bg-[#C4A456] text-black"><Send size={18} fill="currentColor" /></button>
+
+            <div className="absolute bottom-0 left-0 right-0 p-4 pb-8 bg-black border-t border-white/5">
+              <div className="max-w-2xl mx-auto flex items-center gap-3 bg-[#161616] border border-white/10 rounded-full px-5 py-3 shadow-2xl">
+                <input 
+                  value={inputText} 
+                  onChange={(e) => setInputText(e.target.value)} 
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage("")} 
+                  placeholder="Diga uma palavra de fé..." 
+                  className="flex-1 bg-transparent outline-none text-sm text-white" 
+                />
+                <button 
+                  onClick={() => handleSendMessage("")} 
+                  disabled={isLoading || !inputText.trim()} 
+                  className="p-2.5 rounded-full bg-[#C4A456] text-black active:scale-95 transition-transform"
+                >
+                  <Send size={18} fill="currentColor" />
+                </button>
               </div>
             </div>
+
           </motion.div>
         )}
       </AnimatePresence>
