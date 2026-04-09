@@ -109,9 +109,12 @@ export default function Index() {
         }).filter(v => v !== "").join("\n");
       }
 
+      // HACK MÁXIMO: Forçando a quebra de linha real no texto da explicação
+      let explicacaoLimpa = res.explicacao ? res.explicacao.replace(/\\n/g, '\n') : "";
+
       let formatted = "";
       if (res.acolhimento) formatted += `${res.acolhimento}\n\n`;
-      if (res.explicacao) formatted += `${res.explicacao}\n\n`;
+      if (explicacaoLimpa) formatted += `${explicacaoLimpa}\n\n`;
       if (res.aplicacao) formatted += `💡 APLICAÇÃO:\n${res.aplicacao}\n\n`;
       if (versiculosFormatados) formatted += `📖 VERSÍCULOS:\n${versiculosFormatados}\n\n`;
       if (res.oracao) formatted += `🙏 ORAÇÃO:\n${res.oracao}\n\n`;
