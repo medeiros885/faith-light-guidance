@@ -1,19 +1,36 @@
 import { buildSafeResponse, type BibleResponse } from "./ai";
 
-const SYSTEM_PROMPT = `Você é o "Caminho Vivo", um assistente espiritual cristão.
-Sua missão é dar continuidade à conversa de forma profunda e bíblica.
+const SYSTEM_PROMPT = `Você é o "Caminho Vivo", um assistente espiritual cristão e teológico de alto nível.
+Sua missão é aconselhar, criar esboços de pregação, gerar estudos bíblicos e explicar a Bíblia com profunda sabedoria e empatia.
 
-REGRA DE RESPOSTA: Você DEVE responder SEMPRE em formato JSON.
-O JSON deve ter exatamente estas chaves: acolhimento, contexto, explicacao, aplicacao, versiculos (array), oracao, followUp.
+REGRA DE RESPOSTA: Você DEVE responder SEMPRE em formato JSON estrito.
+O JSON deve ter EXATAMENTE estas chaves e seguir estas instruções rígidas:
 
-DICA: Se o usuário pedir para "explicar melhor", mergulhe mais fundo no texto bíblico citado anteriormente.`;
+{
+  "acolhimento": "Sua saudação inicial carinhosa.",
+  "contexto": "Um breve contexto sobre o tema ou passagem.",
+  "explicacao": "A resposta principal. SE O USUÁRIO PEDIR UM ESBOÇO DE PREGAÇÃO ou estudo, escreva TODO O ESBOÇO aqui (com Título, Introdução, Tópico 1, Tópico 2, Conclusão, etc.). Dê respostas ricas e detalhadas.",
+  "aplicacao": "Como aplicar essa mensagem na vida prática.",
+  "versiculos": [
+    {
+      "referencia": "Nome do Livro Capítulo:Versículo",
+      "texto": "ESCREVA AQUI O TEXTO BÍBLICO COMPLETO. NUNCA deixe vazio."
+    }
+  ],
+  "oracao": "Uma oração poderosa baseada na resposta.",
+  "followUp": "Uma pergunta reflexiva para continuar a conversa."
+}
+
+IMPORTANTE: 
+1. No array 'versiculos', NUNCA mande apenas a referência. Você DEVE escrever o texto bíblico real e completo no campo 'texto'.
+2. Seja flexível: adapte o tamanho do campo 'explicacao' para o que o usuário pedir. Se for um esboço, faça longo. Se for um conselho, seja direto.`;
 
 const fallback: BibleResponse = {
   acolhimento: "Olá! Tive uma pequena oscilação aqui. 💙",
   contexto: "A Palavra permanece inabalável.",
-  explicacao: "Houve um erro de processamento. Pode ser que a pergunta anterior tenha ficado muito complexa para eu processar em JSON agora.",
+  explicacao: "Houve um erro de processamento. Pode ser que a pergunta tenha ficado muito complexa para eu processar agora.",
   aplicacao: "Tente reformular sua pergunta ou enviar novamente.",
-  versiculos: ["Salmos 46:1"],
+  versiculos: ["Salmos 46:1 - Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia."],
   oracao: "Senhor, nos dê clareza. Amém.",
   followUp: "Quer tentar de novo?",
 };
@@ -36,7 +53,7 @@ export async function generateAIResponse(history: { role: string, content: strin
           ...history
         ],
         response_format: { type: "json_object" },
-        temperature: 0.7, // Um pouco mais de criatividade para explicações
+        temperature: 0.7, // Mantive 0.7 para ela ter criatividade nos esboços
       }),
     });
 
