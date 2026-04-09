@@ -109,7 +109,6 @@ export default function Index() {
         }).filter(v => v !== "").join("\n");
       }
 
-      // --- A MÁGICA ACONTECE AQUI: Montagem dinâmica da resposta ---
       let formatted = "";
       if (res.acolhimento) formatted += `${res.acolhimento}\n\n`;
       if (res.explicacao) formatted += `${res.explicacao}\n\n`;
